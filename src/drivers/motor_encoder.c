@@ -6,7 +6,6 @@
  */ 
 
 #include "motor_encoder.h"
-#include "spi_collector.h"
 #include "../foc/foc_math_fpu.h"
 #include "../periphs/uart.h"
 

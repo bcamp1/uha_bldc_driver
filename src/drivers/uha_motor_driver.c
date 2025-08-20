@@ -14,7 +14,7 @@
 #include <stdbool.h>
 
 const UHAMotorDriverConfig UHA_MTR_DRVR_CONF = {
-	.pwm = &PWM_A,
+	.pwm = &PWM_CONF,
 	.spi = &SPI_CONF_MTR_DRVR,
 
 	// Current Sense pins

@@ -18,8 +18,7 @@ typedef struct {
 	
 } MotorUnitConfig;
 
-extern const MotorUnitConfig MOTOR_UNIT_A;
-extern const MotorUnitConfig MOTOR_UNIT_B;
+extern const MotorUnitConfig MOTOR_UNIT_CONF;
 
 void motor_unit_init(const MotorUnitConfig* config);
 void motor_unit_set_torque(const MotorUnitConfig* config, float torque, float pole_position);

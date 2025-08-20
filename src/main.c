@@ -10,7 +10,6 @@
 #include "periphs/clocks.h"
 #include "periphs/uart.h"
 #include "drivers/motor_encoder.h"
-#include "drivers/tension_arm.h"
 #include "drivers/stopwatch.h"
 #include "drivers/board.h"
 #include "drivers/uha_motor_driver.h"

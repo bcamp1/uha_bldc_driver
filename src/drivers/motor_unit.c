@@ -12,14 +12,9 @@
 #include "../periphs/gpio.h"
 #include "board.h"
 
-const MotorUnitConfig MOTOR_UNIT_A = {
-	.driver = &UHA_MTR_DRVR_CONF_A,
-	.encoder = &MOTOR_ENCODER_A,
-};
-
-const MotorUnitConfig MOTOR_UNIT_B = {
-	.driver = &UHA_MTR_DRVR_CONF_B,
-	.encoder = &MOTOR_ENCODER_B,
+const MotorUnitConfig MOTOR_UNIT_CONF = {
+	.driver = &UHA_MTR_DRVR_CONF,
+	.encoder = &MOTOR_ENCODER_CONF,
 };
 
 void motor_unit_init(const MotorUnitConfig* config) {
