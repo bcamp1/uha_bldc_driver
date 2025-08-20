@@ -15,8 +15,7 @@ typedef struct {
 	float offset;
 } MotorEncoderConfig;
 
-extern const MotorEncoderConfig MOTOR_ENCODER_A;
-extern const MotorEncoderConfig MOTOR_ENCODER_B;
+extern const MotorEncoderConfig MOTOR_ENCODER_CONF;
 
 float motor_encoder_get_position(const MotorEncoderConfig* config);
 float motor_encoder_get_pole_position(const MotorEncoderConfig* config);

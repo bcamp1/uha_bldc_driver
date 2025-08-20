@@ -12,14 +12,9 @@
 
 #define MOTOR_POLES 4
 
-const MotorEncoderConfig MOTOR_ENCODER_A = {
-	.spi = &SPI_CONF_MTR_ENCODER_A,
+const MotorEncoderConfig MOTOR_ENCODER_CONF = {
+	.spi = &SPI_CONF_MTR_ENCODER,
 	.offset = 1.38105f,
-};
-
-const MotorEncoderConfig MOTOR_ENCODER_B = {
-	.spi = &SPI_CONF_MTR_ENCODER_B,
-	.offset = 4.59148f,
 };
 
 void motor_encoder_init(const MotorEncoderConfig* config) {
@@ -28,15 +23,9 @@ void motor_encoder_init(const MotorEncoderConfig* config) {
 }
 
 float motor_encoder_get_position(const MotorEncoderConfig* config) {
-    // uint16_t result;
-    // if (config->spi == &SPI_CONF_MTR_ENCODER_A) {
-    //     result = spi_collector_get_encoder_a() & 0x3FFF; 
-    // } else {
-    //     result = spi_collector_get_encoder_b() & 0x3FFF; 
-    // }
-	// float revolution_fraction = 2.0f * PI * ((float) result / ((float) 0x3FFF));
-	// return revolution_fraction;   
-    return 0.0f;
+    uint16_t result = spi_write_read16(config->spi, 0) & 0x3FFF;
+	float revolution_fraction = 2.0f * PI * ((float) result / ((float) 0x3FFF));
+	return revolution_fraction;
 }
 
 float motor_encoder_get_pole_position(const MotorEncoderConfig* config) {
