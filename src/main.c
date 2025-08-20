@@ -6,14 +6,15 @@
  */ 
 
 #include <sam.h>
+#include "drivers/uha_motor_driver.h"
 #include "periphs/gpio.h"
 #include "periphs/clocks.h"
 #include "periphs/uart.h"
 #include "drivers/motor_encoder.h"
 #include "drivers/stopwatch.h"
 #include "drivers/board.h"
-#include "drivers/uha_motor_driver.h"
-#include "drivers/motor_encoder.h"
+#include "drivers/motor_unit.h"
+#include "drivers/delay.h"
 
 static void enable_fpu(void);
 static void init_peripherals(void);
@@ -73,14 +74,23 @@ static void stopwatch_test() {
 
 static void encoder_test() {
     uart_println("Starting motor encoder test");
-    motor_encoder_init(&MOTOR_ENCODER_CONF);
+    motor_unit_init(&MOTOR_UNIT_CONF);
 
     while (true) {
         gpio_set_pin(DBG1_PIN);
-        float pos = motor_encoder_get_position(&MOTOR_ENCODER_CONF);
+        float pos = motor_encoder_get_pole_position(&MOTOR_ENCODER_CONF);
+        motor_unit_energize_coils(&MOTOR_UNIT_CONF, 1.0f, 0.5f, 0.25f);
         gpio_clear_pin(DBG1_PIN);
         uart_println_float(pos);
     }
+}
+
+
+static void motor_test() {
+    uha_motor_driver_init(&UHA_MTR_DRVR_CONF);
+    motor_unit_energize_coils(&MOTOR_UNIT_CONF, 0.7f, 0.5f, 0.25f);
+
+    while (true) {}
 }
 
 int main(void) {
@@ -95,11 +105,12 @@ int main(void) {
     //encoder_test();
 
     gpio_set_pin(DBG1_PIN);
-    gpio_set_pin(DBG2_PIN);
-    encoder_test();
+    //gpio_set_pin(DBG2_PIN);
+    //encoder_test();
+    motor_test();
 
 	while (1) {
-        //delay(0x4FF);
+        delay(0xFFFF);
         //for (int i = 0; i < 0xFFFFF; i++) {}
         //gpio_toggle_pin(DBG1_PIN);
         //gpio_toggle_pin(DBG2_PIN);
