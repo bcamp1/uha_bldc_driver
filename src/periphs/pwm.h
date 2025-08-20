@@ -22,8 +22,7 @@ typedef struct {
 	uint8_t c_index;
 } PWMConfig;
 
-extern const PWMConfig PWM_A;
-extern const PWMConfig PWM_B;
+extern const PWMConfig PWM_CONF;
 
 void pwm_timer_init(const PWMConfig* pwm);
 void pwm_timer_loop(void);

@@ -37,8 +37,7 @@ typedef struct {
 	
 } UHAMotorDriverConfig;
 
-extern const UHAMotorDriverConfig UHA_MTR_DRVR_CONF_A;
-extern const UHAMotorDriverConfig UHA_MTR_DRVR_CONF_B;
+extern const UHAMotorDriverConfig UHA_MTR_DRVR_CONF;
 
 void uha_motor_driver_init(const UHAMotorDriverConfig* config);
 void uha_motor_driver_write_reg(const UHAMotorDriverConfig* config, uint8_t address, uint16_t data);

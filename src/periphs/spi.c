@@ -29,28 +29,28 @@ const SPIConfig SPI_CONF_MTR_DRVR = {
 	.sck = PIN_PA16,
 	.sck_alt = GPIO_ALTERNATE_D_SERCOM_ALT,
 	
-	.cs = PIN_PB31,
+	.cs = PIN_PA19,
 };
 
 
 const SPIConfig SPI_CONF_MTR_ENCODER = {
-	.sercom = (SercomSpi*) SERCOM4,
-	.dopo = 2,	// Pad 1 is SCK, pad 3 is MOSI
-	.dipo = 2, // Pad 2 is MISO
+	.sercom = (SercomSpi*) SERCOM3,
+	.dopo = 0,
+	.dipo = 2,
 
 	.polarity = 0,
 	.phase = 0,
 
-	.mosi = PIN_PB15, // SERCOM4[3]
-	.mosi_alt = GPIO_ALTERNATE_C_SERCOM,
+	.mosi = PIN_PA17,
+	.mosi_alt = GPIO_ALTERNATE_D_SERCOM_ALT,
 	
-	.miso = PIN_PB14,
-	.miso_alt = GPIO_ALTERNATE_C_SERCOM,
+	.miso = PIN_PA18,
+	.miso_alt = GPIO_ALTERNATE_D_SERCOM_ALT,
 
-	.sck = PIN_PB13,
-	.sck_alt = GPIO_ALTERNATE_C_SERCOM,
+	.sck = PIN_PA16,
+	.sck_alt = GPIO_ALTERNATE_D_SERCOM_ALT,
 	
-	.cs = PIN_PB08,
+	.cs = PIN_PB14,
 };
 
 void spi_init(const SPIConfig* inst) {

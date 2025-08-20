@@ -28,7 +28,7 @@
 #define GCLK_TCC0_TCC1_INDEX (25)
 #define GCLK_TCC2_TCC3_INDEX (29)
 
-const PWMConfig PWM_A = {
+const PWMConfig PWM_CONF = {
 	.timer = TCC0,
 	.pin_a = PIN_PA23,
 	.pin_b = PIN_PA22,
@@ -36,16 +36,6 @@ const PWMConfig PWM_A = {
 	.a_index = 3,
 	.b_index = 2,
 	.c_index = 1
-};
-
-const PWMConfig PWM_B = {
-	.timer = TCC1,
-	.pin_a = PIN_PA08,
-	.pin_b = PIN_PA09,
-	.pin_c = PIN_PA10,
-	.a_index = 0,
-	.b_index = 1,
-	.c_index = 2
 };
 
 /*

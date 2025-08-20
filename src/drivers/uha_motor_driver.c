@@ -10,12 +10,12 @@
 #include "../periphs/uart.h"
 #include "../periphs/spi.h"
 #include "../foc/foc.h"
-#include "delay.h";
+#include "delay.h"
 #include <stdbool.h>
 
-const UHAMotorDriverConfig UHA_MTR_DRVR_CONF_A = {
+const UHAMotorDriverConfig UHA_MTR_DRVR_CONF = {
 	.pwm = &PWM_A,
-	.spi = &SPI_CONF_MTR_DRVR_A,
+	.spi = &SPI_CONF_MTR_DRVR,
 
 	// Current Sense pins
 	.soa = PIN_PA02,
@@ -23,26 +23,10 @@ const UHAMotorDriverConfig UHA_MTR_DRVR_CONF_A = {
 	.soc = PIN_PB03,
 		
 	// General Pins
-	.n_fault = PIN_PA24,
-	.en = PIN_PA19,
-	.cal = PIN_PA25,
-	.inl = PIN_PA20,
-};
-
-const UHAMotorDriverConfig UHA_MTR_DRVR_CONF_B = {
-	.pwm = &PWM_B,
-	.spi = &SPI_CONF_MTR_DRVR_B,
-
-	// Current Sense pins
-	.soa = PIN_PB01,
-	.sob = PIN_PA06,
-	.soc = PIN_PA07,
-	
-	// General Pins
-	.n_fault = PIN_PB23,
-	.en = PIN_PB16,
-	.cal = PIN_PA27,
-	.inl = PIN_PA11,
+	.n_fault = PIN_PA20,
+	.en = PIN_PB17,
+	.cal = PIN_PB16,
+	.inl = PIN_PA24,
 };
 
 void uha_motor_driver_init(const UHAMotorDriverConfig* config) {

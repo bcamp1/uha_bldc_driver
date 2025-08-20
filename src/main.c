@@ -13,6 +13,7 @@
 #include "drivers/tension_arm.h"
 #include "drivers/stopwatch.h"
 #include "drivers/board.h"
+#include "drivers/uha_motor_driver.h"
 #include "drivers/motor_encoder.h"
 
 static void enable_fpu(void);
@@ -76,7 +77,9 @@ static void encoder_test() {
     motor_encoder_init(&MOTOR_ENCODER_CONF);
 
     while (true) {
+        gpio_set_pin(DBG1_PIN);
         float pos = motor_encoder_get_position(&MOTOR_ENCODER_CONF);
+        gpio_clear_pin(DBG1_PIN);
         uart_println_float(pos);
     }
 }
