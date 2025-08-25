@@ -7,12 +7,12 @@
 #include "spi.h"
 #include "gpio.h"
 #include "uart.h"
-#include "../drivers/board.h"
+#include "../board.h"
 
 /* 12 MHz clock for SPI */
 #define SERCOM_SPI_GCLK GCLK_PCHCTRL_GEN_GCLK4;
 
-const SPIConfig SPI_CONF_MTR_DRVR = {
+const SPIConfig SPI_CONF_GATE_DRIVER = {
 	.sercom = (SercomSpi*) SERCOM3,
 	.dopo = 0,
 	.dipo = 2,
@@ -20,16 +20,16 @@ const SPIConfig SPI_CONF_MTR_DRVR = {
 	.polarity = 0,
 	.phase = 1,
 
-	.mosi = PIN_PA17,
+	.mosi = PIN_MOSI,
 	.mosi_alt = GPIO_ALTERNATE_D_SERCOM_ALT,
 	
-	.miso = PIN_PA18,
+	.miso = PIN_MISO,
 	.miso_alt = GPIO_ALTERNATE_D_SERCOM_ALT,
 
-	.sck = PIN_PA16,
+	.sck = PIN_SCK,
 	.sck_alt = GPIO_ALTERNATE_D_SERCOM_ALT,
 	
-	.cs = PIN_PA19,
+	.cs = PIN_GATE_CS,
 };
 
 
@@ -41,16 +41,16 @@ const SPIConfig SPI_CONF_MTR_ENCODER = {
 	.polarity = 0,
 	.phase = 0,
 
-	.mosi = PIN_PA17,
+	.mosi = PIN_MOSI,
 	.mosi_alt = GPIO_ALTERNATE_D_SERCOM_ALT,
 	
-	.miso = PIN_PA18,
+	.miso = PIN_MISO,
 	.miso_alt = GPIO_ALTERNATE_D_SERCOM_ALT,
 
-	.sck = PIN_PA16,
+	.sck = PIN_SCK,
 	.sck_alt = GPIO_ALTERNATE_D_SERCOM_ALT,
 	
-	.cs = PIN_PB14,
+	.cs = PIN_ENCODER_CS,
 };
 
 void spi_init(const SPIConfig* inst) {

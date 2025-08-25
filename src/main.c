@@ -6,15 +6,14 @@
  */ 
 
 #include <sam.h>
-#include "drivers/uha_motor_driver.h"
 #include "periphs/gpio.h"
 #include "periphs/clocks.h"
 #include "periphs/uart.h"
-#include "drivers/motor_encoder.h"
-#include "drivers/stopwatch.h"
-#include "drivers/board.h"
-#include "drivers/motor_unit.h"
-#include "drivers/delay.h"
+#include "drivers/motor.h"
+#include "drivers/gate_driver.h"
+#include "periphs/stopwatch.h"
+#include "board.h"
+#include "periphs/delay.h"
 
 static void enable_fpu(void);
 static void init_peripherals(void);
@@ -29,9 +28,8 @@ static void init_peripherals(void) {
 	enable_fpu();
 
 	// Init useful debugging GPIO pins
-	//gpio_init_pin(LED_PIN, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
-	gpio_init_pin(DBG1_PIN, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
-	gpio_init_pin(DBG2_PIN, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
+	gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
+	gpio_init_pin(PIN_DEBUG2, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
 	
 	// Init the UART
 	uart_init();
@@ -74,29 +72,30 @@ static void stopwatch_test() {
 
 static void encoder_test() {
     uart_println("Starting motor encoder test");
-    motor_unit_init(&MOTOR_UNIT_CONF);
+    motor_init();
 
     while (true) {
-        gpio_set_pin(DBG1_PIN);
-        float pos = motor_encoder_get_pole_position(&MOTOR_ENCODER_CONF);
-        motor_unit_energize_coils(&MOTOR_UNIT_CONF, 1.0f, 0.5f, 0.25f);
-        gpio_clear_pin(DBG1_PIN);
+        gpio_set_pin(PIN_DEBUG1);
+        float pos = motor_get_pole_position();
+        //motor_energize_coils(1.0f, 0.5f, 0.25f);
+        gpio_clear_pin(PIN_DEBUG1);
+        uart_print("POS: ");
         uart_println_float(pos);
     }
 }
 
 
 static void motor_test() {
-    uha_motor_driver_init(&UHA_MTR_DRVR_CONF);
+    motor_init();
     delay(0xFFFFF);
     //motor_unit_energize_coils(&MOTOR_UNIT_CONF, 0.0f, 0.0f, 0.0f);
 
     int i = 0;
     while (true) {
         i++;
-        gpio_set_pin(DBG1_PIN);
-        int status1 = uha_motor_driver_read_reg(&UHA_MTR_DRVR_CONF, DRV_REG_DRIVER_CONTROL);
-        gpio_clear_pin(DBG1_PIN);
+        gpio_set_pin(PIN_DEBUG1);
+        int status1 = gate_driver_read_reg(DRV_REG_DRIVER_CONTROL);
+        gpio_clear_pin(PIN_DEBUG1);
         //int status2 = uha_motor_driver_read_reg(&UHA_MTR_DRVR_CONF, DRV_REG_FAULT_STATUS_2);
         uart_print("FAULT1: ");
         uart_print_int_base(status1 & 0x3FF, 2);
@@ -106,7 +105,7 @@ static void motor_test() {
         //uart_print_int_base(status2, 2);
         uart_println(" ");
         if (i > 10000) {
-            motor_unit_energize_coils(&MOTOR_UNIT_CONF, 0.0f, 0.0f, 0.0f);
+            motor_energize_coils(0.0f, 0.0f, 0.0f);
         }
     }
 }
@@ -122,8 +121,8 @@ int main(void) {
     //uart_println("\nStarting Encoder Test");
     //encoder_test();
 
-    gpio_set_pin(DBG1_PIN);
-    //gpio_set_pin(DBG2_PIN);
+    gpio_set_pin(PIN_DEBUG1);
+    //gpio_set_pin(PIN_DEBUG2);
     encoder_test();
     //motor_test();
 

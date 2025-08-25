@@ -5,9 +5,9 @@
  *  Author: brans
  */ 
 
-#include "pwm.h"
-#include "gpio.h"
-#include "sam.h"
+#include "motor_pwm.h"
+#include "../periphs/gpio.h"
+#include "../board.h"
 
 #define DSCRITICAL		(0x4)
 #define DSBOTTOM		(0x5)
@@ -20,23 +20,10 @@
 
 // Timer Settings
 #define TIMER_TOP		(0xFF)
-#define A_PIN_INDEX		(3)  
-#define B_PIN_INDEX		(2)
-#define C_PIN_INDEX		(1)
 
 // Clock
 #define GCLK_TCC0_TCC1_INDEX (25)
 #define GCLK_TCC2_TCC3_INDEX (29)
-
-const PWMConfig PWM_CONF = {
-	.timer = TCC0,
-	.pin_a = PIN_PA23,
-	.pin_b = PIN_PA22,
-	.pin_c = PIN_PA21,
-	.a_index = 3,
-	.b_index = 2,
-	.c_index = 1
-};
 
 /*
 Initialization steps:
@@ -48,12 +35,12 @@ Initialization steps:
 6. WAVE.POL
 7. DRVCTRL.INVEN
 */
-void pwm_timer_init(const PWMConfig* pwm) {
+void pwm_timer_init() {
 	// Init Pins
 	//init_pwm_pins();
-	gpio_init_pin(pwm->pin_a, GPIO_DIR_OUT, GPIO_ALTERNATE_G_TCC_PDEC);
-	gpio_init_pin(pwm->pin_b, GPIO_DIR_OUT, GPIO_ALTERNATE_G_TCC_PDEC);
-	gpio_init_pin(pwm->pin_c, GPIO_DIR_OUT, GPIO_ALTERNATE_G_TCC_PDEC);
+	gpio_init_pin(PIN_GATE_INHA, GPIO_DIR_OUT, GPIO_ALTERNATE_G_TCC_PDEC);
+	gpio_init_pin(PIN_GATE_INHB, GPIO_DIR_OUT, GPIO_ALTERNATE_G_TCC_PDEC);
+	gpio_init_pin(PIN_GATE_INHC, GPIO_DIR_OUT, GPIO_ALTERNATE_G_TCC_PDEC);
 	
 	// Configure clock
 	MCLK->APBBMASK.reg |= MCLK_APBBMASK_TCC0 | MCLK_APBBMASK_TCC1;
@@ -62,29 +49,29 @@ void pwm_timer_init(const PWMConfig* pwm) {
 	GCLK->PCHCTRL[GCLK_TCC0_TCC1_INDEX].reg |= GCLK_PCHCTRL_CHEN;
  	
 	// Configure timer
-	pwm->timer->CTRLA.reg |= PWM_PRESCALER << 8;	// Set prescaler
+	PWM_TIMER->CTRLA.reg |= PWM_PRESCALER << 8;	// Set prescaler
 	
 	// Set Wavegen
-	pwm->timer->WAVE.reg |= DSTOP 
+	PWM_TIMER->WAVE.reg |= DSTOP 
 		| TCC_WAVE_POL0
 		| TCC_WAVE_POL1
 		| TCC_WAVE_POL2
 		| TCC_WAVE_POL3;
 
-	pwm->timer->PER.reg = TIMER_TOP;
+	PWM_TIMER->PER.reg = TIMER_TOP;
 	
-	pwm->timer->CTRLA.bit.ENABLE = 1; // Enable timer
+	PWM_TIMER->CTRLA.bit.ENABLE = 1; // Enable timer
 	
 	// timer->CTRLBSET.reg = TCC_CTRLBSET_CMD_RETRIGGER | TCC_CTRLBSET_CMD_READSYNC | TCC_CTRLBSET_DIR;
-	pwm->timer->CTRLBSET.reg = TCC_CTRLBSET_CMD_READSYNC;
+	PWM_TIMER->CTRLBSET.reg = TCC_CTRLBSET_CMD_READSYNC;
 		
-	while (pwm->timer->SYNCBUSY.bit.CTRLB); // Wait for busy
+	while (PWM_TIMER->SYNCBUSY.bit.CTRLB); // Wait for busy
 }
 
-void pwm_set_duties_int(const PWMConfig* pwm, uint8_t a, uint8_t b, uint8_t c) {
-	pwm->timer->CC[pwm->a_index].reg = a;
-	pwm->timer->CC[pwm->b_index].reg = b;
-	pwm->timer->CC[pwm->c_index].reg = c;
+void pwm_set_duties_int(uint8_t a, uint8_t b, uint8_t c) {
+	PWM_TIMER->CC[PWM_INHA_INDEX].reg = a;
+	PWM_TIMER->CC[PWM_INHB_INDEX].reg = b;
+	PWM_TIMER->CC[PWM_INHC_INDEX].reg = c;
 }
 
 /*

@@ -31,7 +31,7 @@ typedef struct {
 	uint8_t cs;
 } SPIConfig;
 
-extern const SPIConfig SPI_CONF_MTR_DRVR;
+extern const SPIConfig SPI_CONF_GATE_DRIVER;
 extern const SPIConfig SPI_CONF_MTR_ENCODER;
 
 void spi_init(const SPIConfig* inst);
