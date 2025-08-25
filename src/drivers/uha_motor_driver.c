@@ -45,12 +45,12 @@ void uha_motor_driver_init(const UHAMotorDriverConfig* config) {
 	
 	// Enable Motor driver
 	gpio_set_pin(config->en);
-	
+
+    // Disable VDS overcurrent fault
+    uha_motor_driver_write_reg(config, DRV_REG_OCP_CONTROL, 0b0000000111000101);
+
 	// Set to 3x PWM mode
 	uha_motor_driver_set_3x(config);
-	
-	// Set to 3x PWM mode
-	//uha_motor_driver_set_3x(config);
 }
 
 

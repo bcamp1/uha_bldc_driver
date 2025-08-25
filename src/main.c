@@ -88,9 +88,27 @@ static void encoder_test() {
 
 static void motor_test() {
     uha_motor_driver_init(&UHA_MTR_DRVR_CONF);
-    motor_unit_energize_coils(&MOTOR_UNIT_CONF, 0.7f, 0.5f, 0.25f);
+    delay(0xFFFFF);
+    //motor_unit_energize_coils(&MOTOR_UNIT_CONF, 0.0f, 0.0f, 0.0f);
 
-    while (true) {}
+    int i = 0;
+    while (true) {
+        i++;
+        gpio_set_pin(DBG1_PIN);
+        int status1 = uha_motor_driver_read_reg(&UHA_MTR_DRVR_CONF, DRV_REG_DRIVER_CONTROL);
+        gpio_clear_pin(DBG1_PIN);
+        //int status2 = uha_motor_driver_read_reg(&UHA_MTR_DRVR_CONF, DRV_REG_FAULT_STATUS_2);
+        uart_print("FAULT1: ");
+        uart_print_int_base(status1 & 0x3FF, 2);
+        uart_print(" ");
+        uart_print_int(i);
+        //uart_print(", FAULT2: ");
+        //uart_print_int_base(status2, 2);
+        uart_println(" ");
+        if (i > 10000) {
+            motor_unit_energize_coils(&MOTOR_UNIT_CONF, 0.0f, 0.0f, 0.0f);
+        }
+    }
 }
 
 int main(void) {
@@ -106,8 +124,8 @@ int main(void) {
 
     gpio_set_pin(DBG1_PIN);
     //gpio_set_pin(DBG2_PIN);
-    //encoder_test();
-    motor_test();
+    encoder_test();
+    //motor_test();
 
 	while (1) {
         delay(0xFFFF);
