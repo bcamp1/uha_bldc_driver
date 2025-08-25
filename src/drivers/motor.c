@@ -83,3 +83,24 @@ void motor_energize_coils(float a, float b, float c) {
 	// Write them to motor driver
 	gate_driver_set_pwm(a_int, b_int, c_int);
 }
+
+void motor_write_reg(uint8_t address, uint16_t data) {
+    gate_driver_write_reg(address, data);
+}
+
+uint16_t motor_read_reg(uint8_t address) {
+    return gate_driver_read_reg(address);
+}
+
+void motor_enable() {
+    gate_driver_enable();
+}
+
+void motor_disable() {
+    gate_driver_disable();
+}
+
+void motor_set_high_z() {
+    gate_driver_set_high_z();
+}
+

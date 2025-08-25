@@ -10,7 +10,6 @@
 #include "periphs/clocks.h"
 #include "periphs/uart.h"
 #include "drivers/motor.h"
-#include "drivers/gate_driver.h"
 #include "periphs/stopwatch.h"
 #include "board.h"
 #include "periphs/delay.h"
@@ -94,7 +93,7 @@ static void motor_test() {
     while (true) {
         i++;
         gpio_set_pin(PIN_DEBUG1);
-        int status1 = gate_driver_read_reg(DRV_REG_DRIVER_CONTROL);
+        int status1 = motor_read_reg(DRV_REG_DRIVER_CONTROL);
         gpio_clear_pin(PIN_DEBUG1);
         //int status2 = uha_motor_driver_read_reg(&UHA_MTR_DRVR_CONF, DRV_REG_FAULT_STATUS_2);
         uart_print("FAULT1: ");
