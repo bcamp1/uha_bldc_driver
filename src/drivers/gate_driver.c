@@ -46,36 +46,32 @@ void gate_driver_init() {
 	gpio_init_pin(PIN_GATE_INL, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
 	gpio_init_pin(PIN_GATE_NFAULT, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
 	
-	
-	// Enable Motor driver
-	gpio_set_pin(PIN_GATE_ENABLE);
-
-    // Disable VDS overcurrent fault
-    gate_driver_write_reg(DRV_REG_OCP_CONTROL, 0b0000000111000101);
-
-	// Set to 3x PWM mode
-	gate_driver_set_3x();
+	// Start with motor driver disabled
+    gate_driver_disable();
 }
 
+void gate_driver_set_3x() {
+    // Set to 3x PWM mode
+    uint16_t pwm_mode = 0b01; // 3x PWM Mode
+    gate_driver_write_reg(DRV_REG_DRIVER_CONTROL, pwm_mode << 5);
+}
 
 void gate_driver_write_reg(uint8_t address, uint16_t data) {
+    spi_change_mode(&SPI_CONF_GATE_DRIVER);
 	uint16_t command = 0;
 	command |= (address & 0xF) << 11;
 	command |= data & 0x7FF;
 	spi_write_read16(&SPI_CONF_GATE_DRIVER, command);
+    spi_change_mode(&SPI_CONF_MTR_ENCODER);
 }
 
 uint16_t gate_driver_read_reg(uint8_t address) {
+    spi_change_mode(&SPI_CONF_GATE_DRIVER);
 	uint16_t command = 0x8000;
 	command |= (address & 0xF) << 11;
-	return spi_write_read16(&SPI_CONF_GATE_DRIVER, command);
-}
-
-void gate_driver_set_3x() {
-	uint16_t data = 0b100000;
-	// Delay to wait for enable signal to turn on chip
-	delay(0xFFFF);
-	gate_driver_write_reg(DRV_REG_DRIVER_CONTROL, data);
+	uint16_t result = spi_write_read16(&SPI_CONF_GATE_DRIVER, command);
+    spi_change_mode(&SPI_CONF_MTR_ENCODER);
+    return result;
 }
 
 void gate_driver_set_pwm(uint8_t a, uint8_t b, uint8_t c) {
@@ -118,6 +114,7 @@ void gate_driver_goto_theta(float theta) {
 
 void gate_driver_enable() {
 	gpio_set_pin(PIN_GATE_ENABLE);
+	delay(0xFFF);
 	gate_driver_set_3x();
 }
 

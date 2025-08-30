@@ -19,12 +19,12 @@
 
 void gate_driver_init();
 void gate_driver_write_reg(uint8_t address, uint16_t data);
-void gate_driver_set_3x();
 void gate_driver_set_pwm(uint8_t a, uint8_t b, uint8_t c);
 void gate_driver_set_high_z();
 void gate_driver_goto_theta(float theta);
 void gate_driver_enable();
 void gate_driver_disable();
 void gate_driver_toggle();
+void gate_driver_set_3x();
 uint16_t gate_driver_read_reg(uint8_t address);
 

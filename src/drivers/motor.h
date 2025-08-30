@@ -20,4 +20,6 @@ uint16_t motor_read_reg(uint8_t address);
 void motor_enable();
 void motor_disable();
 void motor_set_high_z();
+void motor_calibrate_encoder();
+void motor_print_reg(uint8_t address, char* name);
 

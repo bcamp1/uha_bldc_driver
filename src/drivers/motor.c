@@ -12,11 +12,12 @@
 #include "../periphs/uart.h"
 #include "../periphs/spi.h"
 #include "../foc/foc.h"
+#include "../periphs/delay.h"
 
 #define MOTOR_POLES 4
 #define TORQUE_LIMIT (0.4f)
 
-static float offset = 1.38105f;
+static float offset = 1.4443f;
 
 void motor_init() {
     // Init gate driver
@@ -92,6 +93,13 @@ uint16_t motor_read_reg(uint8_t address) {
     return gate_driver_read_reg(address);
 }
 
+void motor_print_reg(uint8_t address, char* name) {
+    uint16_t data = motor_read_reg(address);
+    uart_print(name);
+    uart_print(": ");
+    uart_println_int_base(data, 2);
+}
+
 void motor_enable() {
     gate_driver_enable();
 }
@@ -102,5 +110,24 @@ void motor_disable() {
 
 void motor_set_high_z() {
     gate_driver_set_high_z();
+}
+
+void motor_calibrate_encoder() {
+    const int iterations = 4000;
+    float alpha = (1.0f / 100.0f);
+    offset = 0.0f;
+
+    motor_energize_coils(0.2f, 0.0f, 0.0f);
+    delay(0xFFFFF);
+    float avg = motor_get_position();
+    
+    for (int i = 0; i < iterations; i++) {
+        //uart_println_int(i+1);
+        float position = motor_get_position();
+        avg = avg + (alpha*(position - avg));
+        uart_println_float(avg);
+    }
+    offset = avg;
+    motor_energize_coils(0.0f, 0.0f, 0.0f);
 }
 

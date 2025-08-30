@@ -6,6 +6,7 @@
  */ 
 
 #include <sam.h>
+#include "drivers/gate_driver.h"
 #include "periphs/gpio.h"
 #include "periphs/clocks.h"
 #include "periphs/uart.h"
@@ -74,10 +75,7 @@ static void encoder_test() {
     motor_init();
 
     while (true) {
-        gpio_set_pin(PIN_DEBUG1);
         float pos = motor_get_pole_position();
-        //motor_energize_coils(1.0f, 0.5f, 0.25f);
-        gpio_clear_pin(PIN_DEBUG1);
         uart_print("POS: ");
         uart_println_float(pos);
     }
@@ -85,32 +83,31 @@ static void encoder_test() {
 
 
 static void motor_test() {
+    uart_println("Starting motor test");
     motor_init();
-    delay(0xFFFFF);
-    //motor_unit_energize_coils(&MOTOR_UNIT_CONF, 0.0f, 0.0f, 0.0f);
+    motor_enable();
+    delay(0xFFF);
+    uart_put('\n');
+    uart_put('\n');
+    //motor_calibrate_encoder();
+    motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
+    motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
+    motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
+    //motor_energize_coils(0.1f, 0.0f, 0.0f);
 
-    int i = 0;
     while (true) {
-        i++;
+        //float pos = motor_get_pole_position();
+        //uart_print("POS: ");
+        //uart_println_float(pos);
         gpio_set_pin(PIN_DEBUG1);
-        int status1 = motor_read_reg(DRV_REG_DRIVER_CONTROL);
+        motor_set_torque(0.5, motor_get_pole_position());
         gpio_clear_pin(PIN_DEBUG1);
-        //int status2 = uha_motor_driver_read_reg(&UHA_MTR_DRVR_CONF, DRV_REG_FAULT_STATUS_2);
-        uart_print("FAULT1: ");
-        uart_print_int_base(status1 & 0x3FF, 2);
-        uart_print(" ");
-        uart_print_int(i);
-        //uart_print(", FAULT2: ");
-        //uart_print_int_base(status2, 2);
-        uart_println(" ");
-        if (i > 10000) {
-            motor_energize_coils(0.0f, 0.0f, 0.0f);
-        }
     }
 }
 
 int main(void) {
 	init_peripherals();
+    //delay(0xFFFFF);
 	//print_welcome();
     //timer_schedule(1, 500.0f, timer_test);
     //delay(0x4FFF);
@@ -122,8 +119,8 @@ int main(void) {
 
     gpio_set_pin(PIN_DEBUG1);
     //gpio_set_pin(PIN_DEBUG2);
-    encoder_test();
-    //motor_test();
+    //encoder_test();
+    motor_test();
 
 	while (1) {
         delay(0xFFFF);
