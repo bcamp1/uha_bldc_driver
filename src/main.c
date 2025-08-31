@@ -14,6 +14,7 @@
 #include "periphs/stopwatch.h"
 #include "board.h"
 #include "periphs/delay.h"
+#include "periphs/timer.h"
 #include "drivers/curr_sense.h"
 
 static void enable_fpu(void);
@@ -82,6 +83,9 @@ static void encoder_test() {
     }
 }
 
+void foc_loop() {
+    motor_set_torque(0.4, motor_get_pole_position());
+}
 
 static void motor_test() {
     uart_println("Starting motor test");
@@ -98,15 +102,9 @@ static void motor_test() {
     motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
     motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
     //motor_energize_coils(0.2f, 0.3f, 0.0f);
-
-    while (true) {
-        //float pos = motor_get_pole_position();
-        //uart_print("POS: ");
-        //uart_println_float(pos);
-        //gpio_set_pin(PIN_DEBUG1);
-        motor_set_torque(0.4, motor_get_pole_position());
-       // gpio_clear_pin(PIN_DEBUG1);
-    }
+    
+    // Schedule FOC loop
+    timer_schedule(0, 1000, 0, foc_loop);
 }
 
 int main(void) {
