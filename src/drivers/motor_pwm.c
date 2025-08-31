@@ -62,9 +62,12 @@ void pwm_timer_init() {
 	PWM_TIMER->PER.reg = TIMER_TOP;
 
     // The interrupt in question. CC0
-    PWM_TIMER->INTENSET.bit.MC0 = 1;
-    PWM_TIMER->INTENSET.bit.OVF = 1;
+    //PWM_TIMER->INTENSET.bit.MC0 = 1;
+    //PWM_TIMER->INTENSET.bit.OVF = 1;
     PWM_TIMER->CC[PWM_CURR_SENSE_INDEX].reg = 50;
+
+    PWM_TIMER->EVCTRL.bit.OVFEO = 1;
+    PWM_TIMER->EVCTRL.bit.MCEO0 = 1;
 
     // Set CTRLB
     // timer->CTRLBSET.reg = TCC_CTRLBSET_CMD_RETRIGGER | TCC_CTRLBSET_CMD_READSYNC | TCC_CTRLBSET_DIR;
@@ -75,7 +78,7 @@ void pwm_timer_init() {
 	PWM_TIMER->CTRLA.bit.ENABLE = 1; // Enable timer
     while (PWM_TIMER->SYNCBUSY.bit.ENABLE); // Wait for busy
 	
-    NVIC_EnableIRQ(TCC0_0_IRQn);
+    //NVIC_EnableIRQ(TCC0_0_IRQn);
 }
 
 void pwm_set_duties_int(uint8_t a, uint8_t b, uint8_t c) {
@@ -84,11 +87,11 @@ void pwm_set_duties_int(uint8_t a, uint8_t b, uint8_t c) {
 	PWM_TIMER->CC[PWM_INHC_INDEX].reg = c;
 }
 
-void TCC0_0_Handler() {
-    TCC0->INTFLAG.bit.OVF = 1;
-    gpio_set_pin(PIN_DEBUG2);
-    gpio_clear_pin(PIN_DEBUG2);
-}
+//void TCC0_0_Handler() {
+    //TCC0->INTFLAG.bit.OVF = 1;
+    //gpio_set_pin(PIN_DEBUG2);
+    //gpio_clear_pin(PIN_DEBUG2);
+//}
 
 /*
 void init_pwm_pins(void) {

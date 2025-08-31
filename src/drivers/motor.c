@@ -12,8 +12,10 @@
 #include "../foc/foc_math_fpu.h"
 #include "../periphs/uart.h"
 #include "../periphs/spi.h"
+#include "../periphs/gpio.h"
 #include "../foc/foc.h"
 #include "../periphs/delay.h"
+#include "../board.h"
 
 #define MOTOR_POLES 4
 #define TORQUE_LIMIT (0.4f)
@@ -21,14 +23,14 @@
 static float offset = 1.4443f;
 
 void motor_init() {
+    // Init current sense
+    curr_sense_init();
+
     // Init gate driver
     gate_driver_init();
 
 	// Init encoder SPI
 	spi_init(&SPI_CONF_MTR_ENCODER);
-    
-    // Init current sense
-    curr_sense_init();
 }
 
 float motor_get_position() {
@@ -38,11 +40,13 @@ float motor_get_position() {
 }
 
 float motor_get_pole_position() {
+    gpio_set_pin(PIN_DEBUG1);
 	float theta = motor_get_position();
 	theta -= offset;
 	theta *= (float) MOTOR_POLES;
 	while (theta < 0) theta += 2*PI;
 	while (theta > 2*PI) theta -= 2*PI;
+    gpio_clear_pin(PIN_DEBUG1);
 	return theta;
 }
 

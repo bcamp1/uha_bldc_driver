@@ -16,9 +16,9 @@
 
 // Gate Driver pins
 #define PIN_GATE_CS PIN_PA19
-#define PIN_GATE_SOA PIN_PA02
-#define PIN_GATE_SOB PIN_PB02
-#define PIN_GATE_SOC PIN_PB03
+#define PIN_GATE_SOA PIN_PA02 // ADC0 AIN[0]
+#define PIN_GATE_SOB PIN_PB02 // ADC0 AIN[14]
+#define PIN_GATE_SOC PIN_PB03 // ADC0 AIN[15]
 #define PIN_GATE_NFAULT PIN_PA20
 #define PIN_GATE_ENABLE PIN_PB17
 #define PIN_GATE_CAL PIN_PB16
@@ -26,6 +26,11 @@
 #define PIN_GATE_INHB PIN_PA22
 #define PIN_GATE_INHC PIN_PA21
 #define PIN_GATE_INL PIN_PA24
+
+// Current Sense Settings
+#define SOA_INDEX (0)
+#define SOB_INDEX (14)
+#define SOC_INDEX (15)
 
 // PWM Settings
 #define PWM_INHA_INDEX (3)

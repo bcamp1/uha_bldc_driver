@@ -14,6 +14,7 @@
 #include "periphs/stopwatch.h"
 #include "board.h"
 #include "periphs/delay.h"
+#include "drivers/curr_sense.h"
 
 static void enable_fpu(void);
 static void init_peripherals(void);
@@ -102,14 +103,15 @@ static void motor_test() {
         //float pos = motor_get_pole_position();
         //uart_print("POS: ");
         //uart_println_float(pos);
-        gpio_set_pin(PIN_DEBUG1);
+        //gpio_set_pin(PIN_DEBUG1);
         motor_set_torque(0.4, motor_get_pole_position());
-        gpio_clear_pin(PIN_DEBUG1);
+       // gpio_clear_pin(PIN_DEBUG1);
     }
 }
 
 int main(void) {
 	init_peripherals();
+    delay(0xFFFF);
     //delay(0xFFFFF);
 	//print_welcome();
     //timer_schedule(1, 500.0f, timer_test);
@@ -120,13 +122,10 @@ int main(void) {
     //uart_println("\nStarting Encoder Test");
     //encoder_test();
 
-    gpio_set_pin(PIN_DEBUG1);
-    //gpio_set_pin(PIN_DEBUG2);
     //encoder_test();
     motor_test();
 
 	while (1) {
-        delay(0xFFFF);
         //for (int i = 0; i < 0xFFFFF; i++) {}
         //gpio_toggle_pin(DBG1_PIN);
         //gpio_toggle_pin(DBG2_PIN);

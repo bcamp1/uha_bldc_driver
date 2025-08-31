@@ -76,7 +76,7 @@ void spi_init(const SPIConfig* inst) {
 
 	/* Set baud to max (GCLK / 2) 6 MHz */
 	//inst->sercom->BAUD.reg = SERCOM_SPI_BAUD_BAUD(2000);
-	inst->sercom->BAUD.reg = (uint8_t) 1000; //SERCOM_SPI_BAUD_BAUD(1000);
+	inst->sercom->BAUD.reg = (uint8_t) 600; //SERCOM_SPI_BAUD_BAUD(1000);
 
     // Enable receive complete (RXC) interrupt
     //inst->sercom->INTENSET.bit.RXC = 1;
