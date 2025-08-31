@@ -56,6 +56,20 @@ void gate_driver_set_3x() {
     gate_driver_write_reg(DRV_REG_DRIVER_CONTROL, pwm_mode << 5);
 }
 
+void gate_driver_set_idrive(uint16_t hs_p, uint16_t hs_n, uint16_t ls_p, uint16_t ls_n) {
+    uint16_t hs_register = 0b01100000000;
+    uint16_t ls_register = 0b11100000000;
+    
+    hs_register |= (hs_p << 4);
+    hs_register |= hs_n;
+
+    ls_register |= (ls_p << 4);
+    ls_register |= ls_n;
+
+    gate_driver_write_reg(DRV_REG_GATE_DRIVER_HS, hs_register);
+    gate_driver_write_reg(DRV_REG_GATE_DRIVER_LS, ls_register);
+}
+
 void gate_driver_write_reg(uint8_t address, uint16_t data) {
     spi_change_mode(&SPI_CONF_GATE_DRIVER);
 	uint16_t command = 0;

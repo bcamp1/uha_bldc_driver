@@ -31,5 +31,6 @@
 #define PWM_INHA_INDEX (3)
 #define PWM_INHB_INDEX (2)
 #define PWM_INHC_INDEX (1)
+#define PWM_CURR_SENSE_INDEX (0)
 #define PWM_TIMER (TCC0)
 

@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include "motor.h"
 #include "gate_driver.h"
+#include "curr_sense.h"
 #include "../foc/foc_math_fpu.h"
 #include "../periphs/uart.h"
 #include "../periphs/spi.h"
@@ -22,8 +23,12 @@ static float offset = 1.4443f;
 void motor_init() {
     // Init gate driver
     gate_driver_init();
+
 	// Init encoder SPI
 	spi_init(&SPI_CONF_MTR_ENCODER);
+    
+    // Init current sense
+    curr_sense_init();
 }
 
 float motor_get_position() {

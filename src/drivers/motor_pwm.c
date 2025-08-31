@@ -8,6 +8,7 @@
 #include "motor_pwm.h"
 #include "../periphs/gpio.h"
 #include "../board.h"
+#include "samd51j20a.h"
 
 #define DSCRITICAL		(0x4)
 #define DSBOTTOM		(0x5)
@@ -59,19 +60,34 @@ void pwm_timer_init() {
 		| TCC_WAVE_POL3;
 
 	PWM_TIMER->PER.reg = TIMER_TOP;
-	
+
+    // The interrupt in question. CC0
+    PWM_TIMER->INTENSET.bit.MC0 = 1;
+    PWM_TIMER->INTENSET.bit.OVF = 1;
+    PWM_TIMER->CC[PWM_CURR_SENSE_INDEX].reg = 50;
+
+    // Set CTRLB
+    // timer->CTRLBSET.reg = TCC_CTRLBSET_CMD_RETRIGGER | TCC_CTRLBSET_CMD_READSYNC | TCC_CTRLBSET_DIR;
+    PWM_TIMER->CTRLBSET.reg = TCC_CTRLBSET_CMD_READSYNC;
+    while (PWM_TIMER->SYNCBUSY.bit.CTRLB); // Wait for busy
+
+    // Enable timer
 	PWM_TIMER->CTRLA.bit.ENABLE = 1; // Enable timer
+    while (PWM_TIMER->SYNCBUSY.bit.ENABLE); // Wait for busy
 	
-	// timer->CTRLBSET.reg = TCC_CTRLBSET_CMD_RETRIGGER | TCC_CTRLBSET_CMD_READSYNC | TCC_CTRLBSET_DIR;
-	PWM_TIMER->CTRLBSET.reg = TCC_CTRLBSET_CMD_READSYNC;
-		
-	while (PWM_TIMER->SYNCBUSY.bit.CTRLB); // Wait for busy
+    NVIC_EnableIRQ(TCC0_0_IRQn);
 }
 
 void pwm_set_duties_int(uint8_t a, uint8_t b, uint8_t c) {
 	PWM_TIMER->CC[PWM_INHA_INDEX].reg = a;
 	PWM_TIMER->CC[PWM_INHB_INDEX].reg = b;
 	PWM_TIMER->CC[PWM_INHC_INDEX].reg = c;
+}
+
+void TCC0_0_Handler() {
+    TCC0->INTFLAG.bit.OVF = 1;
+    gpio_set_pin(PIN_DEBUG2);
+    gpio_clear_pin(PIN_DEBUG2);
 }
 
 /*

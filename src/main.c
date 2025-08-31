@@ -90,17 +90,20 @@ static void motor_test() {
     uart_put('\n');
     uart_put('\n');
     //motor_calibrate_encoder();
+    gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
     motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
     motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
     motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
-    //motor_energize_coils(0.1f, 0.0f, 0.0f);
+    motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
+    motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
+    //motor_energize_coils(0.2f, 0.3f, 0.0f);
 
     while (true) {
         //float pos = motor_get_pole_position();
         //uart_print("POS: ");
         //uart_println_float(pos);
         gpio_set_pin(PIN_DEBUG1);
-        motor_set_torque(0.5, motor_get_pole_position());
+        motor_set_torque(0.4, motor_get_pole_position());
         gpio_clear_pin(PIN_DEBUG1);
     }
 }

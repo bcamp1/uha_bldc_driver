@@ -12,18 +12,18 @@
 #include <stdint.h>
 
 // Timer IDs
-#define TIMER_ID_CONTROLLER     (1)
-#define TIMER_ID_STATE_RECORDER (2)
-#define TIMER_ID_SPI_COLLECTOR  (3)
+//#define TIMER_ID_CONTROLLER     (1)
+//#define TIMER_ID_STATE_RECORDER (2)
+//#define TIMER_ID_SPI_COLLECTOR  (3)
 
 // Timer Sample Rates
-#define TIMER_SAMPLE_RATE_STATE_RECORDER    (50.0f)
-#define TIMER_SAMPLE_RATE_SPI_COLLECTOR     (2500.0f)
+//#define TIMER_SAMPLE_RATE_STATE_RECORDER    (50.0f)
+//#define TIMER_SAMPLE_RATE_SPI_COLLECTOR     (2500.0f)
 
 // Timer Priorities
-#define TIMER_PRIORITY_CONTROLLER     (2)
-#define TIMER_PRIORITY_STATE_RECORDER (3)
-#define TIMER_PRIORITY_SPI_COLLECTOR  (1)
+//#define TIMER_PRIORITY_CONTROLLER     (2)
+//#define TIMER_PRIORITY_STATE_RECORDER (3)
+//#define TIMER_PRIORITY_SPI_COLLECTOR  (1)
 
 typedef void (*func_ptr_t)();
 
