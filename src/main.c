@@ -124,7 +124,7 @@ static void motor_test() {
     
     // Schedule FOC loop
     timer_schedule(0, 5000, 6, foc_loop);
-    //timer_schedule(1, 1, 7, current_printer);
+    timer_schedule(1, 100, 7, current_printer);
 }
 
 int main(void) {
@@ -141,11 +141,9 @@ int main(void) {
     //encoder_test();
 
     //encoder_test();
-    //motor_test();
+    motor_test();
 
 	while (1) {
-        uart_print("U");
-        delay(0xFFFFF);
         //for (int i = 0; i < 0xFFFFF; i++) {}
         //gpio_toggle_pin(DBG1_PIN);
         //gpio_toggle_pin(DBG2_PIN);

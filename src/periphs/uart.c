@@ -58,7 +58,7 @@ void uart_init(void) {
 }
 
 void uart_put(char ch) {
-	delay(0xFFF);
+	delay(0x1F);
 	//for (int i = 0; i < 0x8FF; i++);
 	UART_SERCOM->USART.DATA.reg = ch; // Send data
 	while (!UART_SERCOM->USART.INTFLAG.bit.DRE) {} // Wait for empty
