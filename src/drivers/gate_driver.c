@@ -89,8 +89,11 @@ uint16_t gate_driver_read_reg(uint8_t address) {
 }
 
 void gate_driver_set_pwm(uint8_t a, uint8_t b, uint8_t c) {
+    //uint32_t primask = __get_PRIMASK();
+    //__disable_irq();
 	gpio_set_pin(PIN_GATE_INL);
 	pwm_set_duties_int(a, b, c);
+    //__set_PRIMASK(primask);
 }
 
 void gate_driver_set_high_z() {

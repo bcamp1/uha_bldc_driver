@@ -3,12 +3,9 @@ plots_dir: $UHA/logs/plots/
 auto_generate_plot: true
 data_info:
   - {name: Time, ylabel: Seconds (s), plot: false}
-  - {name: Takeup Reel Speed, ylabel: rads/s, plot: true}
-  - {name: Takeup Tension Arm, ylabel: Arm Height (%), plot: false, scale: 100.0}
-  - {name: Supply Reel Speed, ylabel: rads/s, plot: false}
-  - {name: Supply Tension Arm, ylabel: Arm Height (%), plot: false, scale: 100.0}
-  - {name: Tape Speed, ylabel: Tape Speed (ips), plot: false}
-#  - {name: Tape Acceleration, ylabel: Tape Accel (ips/s), plot: false}
+  - {name: Current U, ylabel: V, plot: true}
+  - {name: Current V, ylabel: V, plot: true}
+  - {name: Current W, ylabel: V, plot: true}
 plot_settings:
   show_xlims: false
   x_min: 2.0

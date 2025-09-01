@@ -17,7 +17,7 @@ static uint16_t index = 0;
 
 static volatile float curr_values[] = {0.0f, 0.0f, 0.0f};
 
-void adc_init(void) {
+void curr_sense_init(void) {
     uart_println("Initializing ADC");
     // Initialize EVSYS
     MCLK->APBBMASK.bit.EVSYS_ = 1;
@@ -95,10 +95,6 @@ float adc_read(void) {
     return ((data / 256.0f) * 3.3f);
 }
 
-void curr_sense_init() {
-    adc_init();
-}
-
 void ADC0_1_Handler() {
     gpio_toggle_pin(PIN_DEBUG2);
     // Read current value
@@ -112,9 +108,9 @@ void ADC0_1_Handler() {
     gpio_clear_pin(PIN_DEBUG2);
 }
 
-static void timer_callback() {
-    //gpio_set_pin(PIN_DEBUG2);
-    //gpio_clear_pin(PIN_DEBUG2);
+void curr_sense_get_values(float* a, float* b, float* c) {
+    *a = curr_values[0];
+    *b = curr_values[1];
+    *c = curr_values[2];
 }
-
 

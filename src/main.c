@@ -84,7 +84,26 @@ static void encoder_test() {
 }
 
 void foc_loop() {
-    motor_set_torque(0.4, motor_get_pole_position());
+    gpio_set_pin(PIN_DEBUG1);
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    float pole_position = motor_get_pole_position();
+    __set_PRIMASK(primask);
+    motor_set_torque(0.4, pole_position);
+    gpio_clear_pin(PIN_DEBUG1);
+}
+
+void current_printer() {
+    static float time = 0.0f;
+    time += 0.02f;
+    float currents[4];
+    curr_sense_get_values(&currents[1], &currents[2], &currents[3]);
+    currents[0] = time;
+
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    uart_println_float_arr(currents, 4);
+    __set_PRIMASK(primask);
 }
 
 static void motor_test() {
@@ -104,7 +123,8 @@ static void motor_test() {
     //motor_energize_coils(0.2f, 0.3f, 0.0f);
     
     // Schedule FOC loop
-    timer_schedule(0, 1000, 0, foc_loop);
+    timer_schedule(0, 5000, 6, foc_loop);
+    //timer_schedule(1, 1, 7, current_printer);
 }
 
 int main(void) {
@@ -121,9 +141,11 @@ int main(void) {
     //encoder_test();
 
     //encoder_test();
-    motor_test();
+    //motor_test();
 
 	while (1) {
+        uart_print("U");
+        delay(0xFFFFF);
         //for (int i = 0; i < 0xFFFFF; i++) {}
         //gpio_toggle_pin(DBG1_PIN);
         //gpio_toggle_pin(DBG2_PIN);

@@ -40,13 +40,11 @@ float motor_get_position() {
 }
 
 float motor_get_pole_position() {
-    gpio_set_pin(PIN_DEBUG1);
 	float theta = motor_get_position();
 	theta -= offset;
 	theta *= (float) MOTOR_POLES;
 	while (theta < 0) theta += 2*PI;
 	while (theta > 2*PI) theta -= 2*PI;
-    gpio_clear_pin(PIN_DEBUG1);
 	return theta;
 }
 

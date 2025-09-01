@@ -85,6 +85,9 @@ void pwm_set_duties_int(uint8_t a, uint8_t b, uint8_t c) {
 	PWM_TIMER->CC[PWM_INHA_INDEX].reg = a;
 	PWM_TIMER->CC[PWM_INHB_INDEX].reg = b;
 	PWM_TIMER->CC[PWM_INHC_INDEX].reg = c;
+    while (PWM_TIMER->SYNCBUSY.bit.CC1);
+    while (PWM_TIMER->SYNCBUSY.bit.CC2);
+    while (PWM_TIMER->SYNCBUSY.bit.CC3);
 }
 
 //void TCC0_0_Handler() {
