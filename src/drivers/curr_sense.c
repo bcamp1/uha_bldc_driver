@@ -13,7 +13,8 @@
 static void timer_callback();
 
 uint16_t adc_indices[3] = {SOA_INDEX, SOB_INDEX, SOC_INDEX};
-static uint16_t index = 0;
+//uint16_t adc_indices[3] = {SOA_INDEX, SOA_INDEX, SOA_INDEX};
+static uint16_t index = 1;
 
 static volatile float curr_values[] = {0.0f, 0.0f, 0.0f};
 
@@ -52,10 +53,10 @@ void curr_sense_init(void) {
     ADC0->CTRLA.bit.PRESCALER = ADC_CTRLA_PRESCALER_DIV32_Val; 
 
     // Sampling time: minimal (SAMPCTRL=0)
-    ADC0->SAMPCTRL.reg = 0;
+    ADC0->SAMPCTRL.reg = 10;
 
     // Select input PB03 = AIN[11]
-    ADC0->INPUTCTRL.bit.MUXPOS = adc_indices[0];
+    ADC0->INPUTCTRL.bit.MUXPOS = adc_indices[index];
     ADC0->INPUTCTRL.bit.MUXNEG = ADC_INPUTCTRL_MUXNEG_GND_Val; // Single-ended
 
     while (ADC0->SYNCBUSY.bit.INPUTCTRL);

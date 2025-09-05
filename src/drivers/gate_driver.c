@@ -133,6 +133,10 @@ void gate_driver_enable() {
 	gpio_set_pin(PIN_GATE_ENABLE);
 	delay(0xFFF);
 	gate_driver_set_3x();
+
+    // Change CSA amplitude
+    gate_driver_write_reg(DRV_REG_CSA_CONTROL, 0b01011000011);
+	delay(0xFFF);
 }
 
 void gate_driver_disable() {

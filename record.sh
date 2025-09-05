@@ -20,7 +20,7 @@ csv2plot_file="$UHA/logs/csv2plot.py"
 # Record UART data
 echo "Recording to $csv_file... (Ctrl-C to stop)"
 stty -F /dev/ttyUSB0 -echo
-timeout 4s socat -d -d -u FILE:/dev/ttyUSB0,b115200,raw STDOUT > "$csv_file"
+timeout 5s socat -d -d -u FILE:/dev/ttyUSB0,b115200,raw STDOUT > "$csv_file"
 
 # Clean up CSV file
 echo "Cleaning up CSV file..."

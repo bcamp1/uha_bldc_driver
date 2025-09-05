@@ -89,13 +89,13 @@ void foc_loop() {
     __disable_irq();
     float pole_position = motor_get_pole_position();
     __set_PRIMASK(primask);
-    motor_set_torque(0.4, pole_position);
+    motor_set_torque(-0.2f, pole_position);
     gpio_clear_pin(PIN_DEBUG1);
 }
 
 void current_printer() {
     static float time = 0.0f;
-    time += 0.02f;
+    time += 0.01f;
     float currents[4];
     curr_sense_get_values(&currents[1], &currents[2], &currents[3]);
     currents[0] = time;

@@ -7,8 +7,8 @@
 
 #include "foc.h"
 #include "foc_math_fpu.h"
-#include "../drivers/motor_encoder.h"
-#include "../periphs/pwm.h"
+//#include "../drivers/motor_encoder.h"
+//#include "../periphs/pwm.h"
 
 void foc_get_duties(float theta, float d, float q, float* a, float* b, float* c) {
 	inv_park_clark(theta, d, q, a, b, c);

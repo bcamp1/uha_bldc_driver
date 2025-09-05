@@ -6,7 +6,7 @@
  */ 
 
 #include "foc_math_fpu.h"
-#include "../drivers/board.h"
+#include "../board.h"
 #include "../periphs/gpio.h"
 #include "fast_sin_cos.h"
 
