@@ -142,6 +142,7 @@ static void spi_async_isr() {
     }
 }
 
+/*
 void SERCOM4_0_Handler(void) {
     //uart_println("(0) Handler");  
     spi_async_isr();
@@ -151,4 +152,5 @@ void SERCOM4_2_Handler(void) {
     //uart_println("(2) Handler");  
     spi_async_isr();
 }
+*/
 

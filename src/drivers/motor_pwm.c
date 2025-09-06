@@ -10,21 +10,10 @@
 #include "../board.h"
 #include "samd51j20a.h"
 
-#define DSCRITICAL		(0x4)
-#define DSBOTTOM		(0x5)
-#define DSBOTH			(0x6)
-#define DSTOP			(0x7)
-#define TCC_CMD_START	(0x1)
-#define TCC_CMD_STOP	(0x2)
-
 #define PWM_PRESCALER	(0x2)
 
 // Timer Settings
 #define TIMER_TOP		(0xFF)
-
-// Clock
-#define GCLK_TCC0_TCC1_INDEX (25)
-#define GCLK_TCC2_TCC3_INDEX (29)
 
 /*
 Initialization steps:

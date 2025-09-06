@@ -16,6 +16,8 @@
 #include "periphs/delay.h"
 #include "periphs/timer.h"
 #include "drivers/curr_sense.h"
+#include "drivers/pwm_capture.h"
+#include "drivers/spi_slave.h"
 
 static void enable_fpu(void);
 static void init_peripherals(void);
@@ -84,13 +86,13 @@ static void encoder_test() {
 }
 
 void foc_loop() {
-    gpio_set_pin(PIN_DEBUG1);
+    //gpio_set_pin(PIN_DEBUG1);
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
     float pole_position = motor_get_pole_position();
     __set_PRIMASK(primask);
     motor_set_torque(-0.2f, pole_position);
-    gpio_clear_pin(PIN_DEBUG1);
+    //gpio_clear_pin(PIN_DEBUG1);
 }
 
 void current_printer() {
@@ -102,7 +104,7 @@ void current_printer() {
 
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
-    uart_println_float_arr(currents, 4);
+    //uart_println_float_arr(currents, 4);
     __set_PRIMASK(primask);
 }
 
@@ -123,35 +125,22 @@ static void motor_test() {
     //motor_energize_coils(0.2f, 0.3f, 0.0f);
     
     // Schedule FOC loop
-    timer_schedule(0, 5000, 6, foc_loop);
-    timer_schedule(1, 100, 7, current_printer);
+    timer_schedule(0, 500, 6, foc_loop);
+    //timer_schedule(1, 100, 7, current_printer);
 }
 
 int main(void) {
 	init_peripherals();
-    delay(0xFFFF);
-    //delay(0xFFFFF);
-	//print_welcome();
-    //timer_schedule(1, 500.0f, timer_test);
-    //delay(0x4FFF);
-    //uart_println("\nStarting Controller Test");
-    //controller_test();
-    //delay(0x4FFF);
-    //uart_println("\nStarting Encoder Test");
-    //encoder_test();
+    spi_slave_init(); 
 
     //encoder_test();
-    motor_test();
+    //motor_test();
+    //
+
+    //gpio_set_pin(PIN_DEBUG2);
 
 	while (1) {
-        //for (int i = 0; i < 0xFFFFF; i++) {}
-        //gpio_toggle_pin(DBG1_PIN);
-        //gpio_toggle_pin(DBG2_PIN);
-        //uart_println("Hello world");
-		//float ips = roller_get_ips();
-		//float tape_pos = roller_get_tape_position(15.0f);
-        //float data[2] = {ips, tape_pos};
-        //uart_println_float_arr(data, 2);
+        delay(0xFFF);
 	}
 }
 

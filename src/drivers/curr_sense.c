@@ -25,10 +25,10 @@ void curr_sense_init(void) {
 
     // Channel 0: TCC0 compare match → ADC0
     const uint16_t CHANNEL_TCC0_OVF = 0x29;
-    EVSYS->Channel[0].CHANNEL.reg = CHANNEL_TCC0_OVF | (0b1 << 9);
+    EVSYS->Channel[EVENT_TCC_ADC_CHANNEL].CHANNEL.reg = CHANNEL_TCC0_OVF | (0b1 << 9);
 
     // User: ADC0 start
-    EVSYS->USER[EVSYS_ID_USER_ADC0_START].bit.CHANNEL = 1;
+    EVSYS->USER[EVSYS_ID_USER_ADC0_START].bit.CHANNEL = EVENT_TCC_ADC_CHANNEL + 1;
 
     // Initialize pins
     gpio_init_pin(PIN_GATE_SOA, GPIO_DIR_IN, GPIO_ALTERNATE_B_ADC);
@@ -97,7 +97,7 @@ float adc_read(void) {
 }
 
 void ADC0_1_Handler() {
-    gpio_toggle_pin(PIN_DEBUG2);
+    //gpio_toggle_pin(PIN_DEBUG2);
     // Read current value
     uint8_t result = ADC0->RESULT.reg;
     curr_values[index] = (((float) result)/256.0f) * 3.3f;
@@ -106,7 +106,7 @@ void ADC0_1_Handler() {
     ADC0->INPUTCTRL.bit.MUXPOS = adc_indices[index];
     ADC0->INPUTCTRL.bit.MUXNEG = ADC_INPUTCTRL_MUXNEG_GND_Val; // Single-ended
     while (ADC0->SYNCBUSY.bit.INPUTCTRL);
-    gpio_clear_pin(PIN_DEBUG2);
+    //gpio_clear_pin(PIN_DEBUG2);
 }
 
 void curr_sense_get_values(float* a, float* b, float* c) {
