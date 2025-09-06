@@ -140,6 +140,7 @@ int main(void) {
     //gpio_set_pin(PIN_DEBUG2);
 
 	while (1) {
+        uart_println_int_base(spi_slave_get_torque_command(), 16);
         delay(0xFFF);
 	}
 }
