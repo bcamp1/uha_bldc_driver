@@ -86,13 +86,8 @@ static void encoder_test() {
 }
 
 void foc_loop() {
-    //gpio_set_pin(PIN_DEBUG1);
-    uint32_t primask = __get_PRIMASK();
-    __disable_irq();
     float pole_position = motor_get_pole_position();
-    __set_PRIMASK(primask);
-    motor_set_torque(-0.2f, pole_position);
-    //gpio_clear_pin(PIN_DEBUG1);
+    motor_set_torque(0.15f, pole_position);
 }
 
 void current_printer() {
@@ -122,10 +117,12 @@ static void motor_test() {
     motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
     motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
     motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
-    //motor_energize_coils(0.2f, 0.3f, 0.0f);
+
+
+    motor_energize_coils(0.04f, 0.0f, 0.0f);
     
     // Schedule FOC loop
-    timer_schedule(0, 500, 6, foc_loop);
+    timer_schedule(0, 2000, 6, foc_loop);
     //timer_schedule(1, 100, 7, current_printer);
 }
 
@@ -134,13 +131,13 @@ int main(void) {
     spi_slave_init(); 
 
     //encoder_test();
-    //motor_test();
-    //
+    motor_test();
+    
 
     //gpio_set_pin(PIN_DEBUG2);
 
 	while (1) {
-        uart_println_int_base(spi_slave_get_torque_command(), 16);
+        //uart_println_int_base(spi_slave_get_torque_command(), 16);
         delay(0xFFF);
 	}
 }
