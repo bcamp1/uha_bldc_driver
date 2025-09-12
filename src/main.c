@@ -77,6 +77,18 @@ static void stopwatch_test() {
 static void encoder_test() {
     uart_println("Starting motor encoder test");
     motor_init();
+    motor_enable();
+    delay(0xFFF);
+    uart_put('\n');
+    uart_put('\n');
+    motor_calibrate_encoder();
+    //gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
+    motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
+    motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
+    motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
+    motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
+    motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
+    motor_energize_coils(0.1f, 0.0f, 0.0f);
 
     while (true) {
         float pos = motor_get_pole_position();
@@ -87,7 +99,7 @@ static void encoder_test() {
 
 void foc_loop() {
     float pole_position = motor_get_pole_position();
-    motor_set_torque(0.15f, pole_position);
+    motor_set_torque(0.3f, pole_position);
 }
 
 void current_printer() {
@@ -110,8 +122,8 @@ static void motor_test() {
     delay(0xFFF);
     uart_put('\n');
     uart_put('\n');
-    //motor_calibrate_encoder();
-    gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
+    motor_calibrate_encoder();
+    //gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
     motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
     motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
     motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
@@ -119,10 +131,10 @@ static void motor_test() {
     motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
 
 
-    motor_energize_coils(0.04f, 0.0f, 0.0f);
+    //motor_energize_coils(0.04f, 0.0f, 0.0f);
     
     // Schedule FOC loop
-    timer_schedule(0, 2000, 6, foc_loop);
+    timer_schedule(0, 4000, 6, foc_loop);
     //timer_schedule(1, 100, 7, current_printer);
 }
 
@@ -133,12 +145,17 @@ int main(void) {
     //encoder_test();
     motor_test();
     
+	gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
+	gpio_init_pin(PIN_DEBUG2, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
 
-    //gpio_set_pin(PIN_DEBUG2);
+    gpio_set_pin(PIN_DEBUG1);
+    gpio_set_pin(PIN_DEBUG2);
 
 	while (1) {
+        gpio_toggle_pin(PIN_DEBUG1);
+        gpio_toggle_pin(PIN_DEBUG2);
         //uart_println_int_base(spi_slave_get_torque_command(), 16);
-        delay(0xFFF);
+        delay(0xFFFF);
 	}
 }
 

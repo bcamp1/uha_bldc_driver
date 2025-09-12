@@ -17,8 +17,8 @@
 #include "../periphs/delay.h"
 #include "../board.h"
 
-#define MOTOR_POLES 3
-#define TORQUE_LIMIT (1.0f)
+#define MOTOR_POLES 4
+#define TORQUE_LIMIT (0.4f)
 
 static float offset = 1.07f;
 
@@ -150,7 +150,7 @@ void motor_calibrate_encoder() {
     float alpha = (1.0f / 100.0f);
     offset = 0.0f;
 
-    motor_energize_coils(0.3f, 0.0f, 0.0f);
+    motor_energize_coils(0.15f, 0.0f, 0.0f);
     delay(0xFFFFF);
     float avg = motor_get_position();
     
