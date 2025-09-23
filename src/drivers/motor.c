@@ -20,9 +20,31 @@
 #define MOTOR_POLES 4
 #define TORQUE_LIMIT (0.4f)
 
-static float offset = 1.07f;
+MotorConfig MOTOR_CONF_SUPPLY = {
+    .offset = 6.0868f,
+    .poles = 4,
+    .speed_control = false,
+    .max_torque = 0.4f,
+};
 
-void motor_init() {
+MotorConfig MOTOR_CONF_TAKEUP = {
+    .offset = 3.0237f,
+    .poles = 4,
+    .speed_control = false,
+    .max_torque = 0.4f,
+};
+
+MotorConfig MOTOR_CONF_CAPSTAN = {
+    .offset = 6.0868f,
+    .poles = 3,
+    .speed_control = true,
+    .max_torque = 0.2f,
+};
+
+static MotorConfig* config = NULL;
+
+void motor_init(MotorConfig* motor_config) {
+    config = motor_config;
     // Init current sense
     //curr_sense_init();
 
@@ -41,7 +63,7 @@ float motor_get_position() {
 
 float motor_get_pole_position() {
 	float theta = motor_get_position();
-	theta -= offset;
+	theta -= config->offset;
 	theta *= (float) MOTOR_POLES;
 	while (theta < 0) theta += 2*PI;
 	while (theta > 2*PI) theta -= 2*PI;
@@ -49,7 +71,7 @@ float motor_get_pole_position() {
 }
 
 float motor_get_pole_pos_from_theta(float theta) {
-	theta -= offset;
+	theta -= config->offset;
 	theta *= (float) MOTOR_POLES;
 	while (theta < 0) theta += 2*PI;
 	while (theta > 2*PI) theta -= 2*PI;
@@ -148,7 +170,7 @@ void motor_set_high_z() {
 void motor_calibrate_encoder() {
     const int iterations = 4000;
     float alpha = (1.0f / 100.0f);
-    offset = 0.0f;
+    config->offset = 0.0f;
 
     motor_energize_coils(0.15f, 0.0f, 0.0f);
     delay(0xFFFFF);
@@ -160,7 +182,7 @@ void motor_calibrate_encoder() {
         avg = avg + (alpha*(position - avg));
         uart_println_float(avg);
     }
-    offset = avg;
+    config->offset = avg;
     motor_energize_coils(0.0f, 0.0f, 0.0f);
 }
 

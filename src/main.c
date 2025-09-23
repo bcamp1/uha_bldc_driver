@@ -18,6 +18,7 @@
 #include "drivers/curr_sense.h"
 #include "drivers/pwm_capture.h"
 #include "drivers/spi_slave.h"
+#include "periphs/spi.h"
 
 static void enable_fpu(void);
 static void init_peripherals(void);
@@ -76,22 +77,13 @@ static void stopwatch_test() {
 
 static void encoder_test() {
     uart_println("Starting motor encoder test");
-    motor_init();
-    motor_enable();
     delay(0xFFF);
     uart_put('\n');
     uart_put('\n');
-    motor_calibrate_encoder();
-    //gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
-    motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
-    motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
-    motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
-    motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
-    motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
-    motor_energize_coils(0.1f, 0.0f, 0.0f);
-
+    motor_init(&MOTOR_CONF_SUPPLY);
+    motor_enable();
     while (true) {
-        float pos = motor_get_pole_position();
+  float pos = motor_get_pole_position();
         uart_print("POS: ");
         uart_println_float(pos);
     }
@@ -99,7 +91,7 @@ static void encoder_test() {
 
 void foc_loop() {
     float pole_position = motor_get_pole_position();
-    motor_set_torque(0.3f, pole_position);
+    motor_set_torque(0.4f, pole_position);
 }
 
 void current_printer() {
@@ -111,18 +103,18 @@ void current_printer() {
 
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
-    //uart_println_float_arr(currents, 4);
+    uart_println_float_arr(currents, 4);
     __set_PRIMASK(primask);
 }
 
 static void motor_test() {
     uart_println("Starting motor test");
-    motor_init();
+    motor_init(&MOTOR_CONF_TAKEUP);
     motor_enable();
     delay(0xFFF);
     uart_put('\n');
     uart_put('\n');
-    motor_calibrate_encoder();
+    //motor_calibrate_encoder();
     //gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
     motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
     motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
@@ -134,13 +126,14 @@ static void motor_test() {
     //motor_energize_coils(0.04f, 0.0f, 0.0f);
     
     // Schedule FOC loop
-    timer_schedule(0, 4000, 6, foc_loop);
-    //timer_schedule(1, 100, 7, current_printer);
+    timer_schedule(0, 1000, 1, foc_loop);
+    //timer_schedule(1, 50, 7, current_printer);
 }
 
 int main(void) {
 	init_peripherals();
-    spi_slave_init(); 
+    delay(0xFFFF);
+    //spi_slave_init(); 
 
     //encoder_test();
     motor_test();
@@ -148,14 +141,18 @@ int main(void) {
 	gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
 	gpio_init_pin(PIN_DEBUG2, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
 
-    gpio_set_pin(PIN_DEBUG1);
-    gpio_set_pin(PIN_DEBUG2);
+    gpio_clear_pin(PIN_DEBUG1);
+    gpio_clear_pin(PIN_DEBUG2);
 
 	while (1) {
+        //uart_println("HELLO");
         gpio_toggle_pin(PIN_DEBUG1);
         gpio_toggle_pin(PIN_DEBUG2);
         //uart_println_int_base(spi_slave_get_torque_command(), 16);
-        delay(0xFFFF);
+        delay(0x38FFF);
+        gpio_toggle_pin(PIN_DEBUG1);
+        gpio_toggle_pin(PIN_DEBUG2);
+        delay(0x38FFF);
 	}
 }
 
