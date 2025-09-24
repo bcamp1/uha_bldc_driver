@@ -96,3 +96,4 @@ void gpio_set_drivestrength(uint8_t pin, uint8_t drivestrength) {
 	get_pin_port(pin, &pin, &port);
 	PORT->Group[port].PINCFG[pin].bit.DRVSTR = drivestrength;
 }
+

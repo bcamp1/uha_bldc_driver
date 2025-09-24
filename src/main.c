@@ -19,6 +19,7 @@
 #include "drivers/pwm_capture.h"
 #include "drivers/spi_slave.h"
 #include "periphs/spi.h"
+#include "periphs/eic.h"
 
 static void enable_fpu(void);
 static void init_peripherals(void);
@@ -41,6 +42,9 @@ static void init_peripherals(void) {
     
     // Stop Watch
     stopwatch_init();
+
+    // EIC
+    eic_init();
 }
 
 static void enable_fpu(void) {
@@ -130,29 +134,46 @@ static void motor_test() {
     //timer_schedule(1, 50, 7, current_printer);
 }
 
+void enable_callback() {
+    if (gpio_get_pin(PIN_ENABLE)) {
+        // Module has been enabled. Initialize everything and begin.    
+        uart_println("Motor module enabled");
+        motor_init_from_ident();
+        motor_enable();
+        delay(0xFFF);
+        uart_put('\n');
+        uart_put('\n');
+        //motor_calibrate_encoder();
+        //gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
+        motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
+        motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
+        motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
+        motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
+        motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
+        gpio_set_pin(PIN_DEBUG1);
+    } else {
+        // Module has been shut down. Uninitialize anything here.
+        uart_println("Motor module disabled");
+        motor_disable();
+        gpio_clear_pin(PIN_DEBUG1);
+    }
+}
+
 int main(void) {
 	init_peripherals();
     delay(0xFFFF);
-    //spi_slave_init(); 
 
-    //encoder_test();
-    motor_test();
-    
 	gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
 	gpio_init_pin(PIN_DEBUG2, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
 
     gpio_clear_pin(PIN_DEBUG1);
     gpio_clear_pin(PIN_DEBUG2);
 
+    eic_init_pin(PIN_ENABLE, PIN_ENABLE_EIC_INDEX, EIC_MODE_BOTH, enable_callback);
+    //gpio_set_pin(PIN_DEBUG1);
+
 	while (1) {
         //uart_println("HELLO");
-        gpio_toggle_pin(PIN_DEBUG1);
-        gpio_toggle_pin(PIN_DEBUG2);
-        //uart_println_int_base(spi_slave_get_torque_command(), 16);
-        delay(0x38FFF);
-        gpio_toggle_pin(PIN_DEBUG1);
-        gpio_toggle_pin(PIN_DEBUG2);
-        delay(0x38FFF);
 	}
 }
 

@@ -20,6 +20,8 @@
 #define MOTOR_POLES 4
 #define TORQUE_LIMIT (0.4f)
 
+static uint8_t identity = MOTOR_IDENT_UNKNOWN;
+
 MotorConfig MOTOR_CONF_SUPPLY = {
     .offset = 6.0868f,
     .poles = 4,
@@ -42,6 +44,36 @@ MotorConfig MOTOR_CONF_CAPSTAN = {
 };
 
 static MotorConfig* config = NULL;
+
+void motor_init_from_ident() {
+    gpio_init_pin(PIN_IDENT1, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
+    gpio_init_pin(PIN_IDENT0, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
+    uint8_t ident1 = (uint8_t) gpio_get_pin(PIN_IDENT1);
+    uint8_t ident0 = (uint8_t) gpio_get_pin(PIN_IDENT0);
+    identity = (ident1 << 1) | ident0; 
+
+    switch (identity) {
+        case MOTOR_IDENT_CAPSTAN:
+            uart_println("Identity: capstan");
+            motor_init(&MOTOR_CONF_CAPSTAN);
+            break;
+        case MOTOR_IDENT_TAKEUP:
+            uart_println("Identity: takeup");
+            motor_init(&MOTOR_CONF_TAKEUP);
+            break;
+        case MOTOR_IDENT_SUPPLY:
+            uart_println("Identity: supply");
+            motor_init(&MOTOR_CONF_SUPPLY);
+            break;
+        case MOTOR_IDENT_UNKNOWN:
+            uart_println("ERROR TRIED TO INIT WITH INVALID IDENTITY");
+            break;
+        default:
+            while (true) {
+                uart_println("ERROR INVALID IDENTITY");
+            }
+    }
+}
 
 void motor_init(MotorConfig* motor_config) {
     config = motor_config;
@@ -184,5 +216,9 @@ void motor_calibrate_encoder() {
     }
     config->offset = avg;
     motor_energize_coils(0.0f, 0.0f, 0.0f);
+}
+
+uint8_t motor_get_identity() {
+    return identity;
 }
 

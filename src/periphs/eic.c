@@ -87,6 +87,10 @@ void EIC_10_Handler(void) {
 	process_interrupt(10);
 }
 
+void EIC_15_Handler(void) {
+	process_interrupt(15);
+}
+
 static void process_interrupt(uint16_t ext_num) {
 	// Clear interrupt
 	EIC->INTFLAG.reg |= (0b1) << ext_num;

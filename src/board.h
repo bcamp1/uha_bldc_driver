@@ -48,8 +48,8 @@
 #define TCC_CMD_STOP	(0x2)
 
 // Interface with Motherboard
-#define PIN_TRQMAG      PIN_PA08
-#define PIN_TRQDIR      PIN_PA11
+#define PIN_IDENT1      PIN_PA08
+#define PIN_IDENT0      PIN_PA11
 #define PIN_SCL         PIN_PA13
 #define PIN_SDA         PIN_PA12
 #define PIN_SLAVE_SDO   PIN_PB12 // SERCOM4[0] C
@@ -57,6 +57,7 @@
 #define PIN_SLAVE_CS    PIN_PB10 // SERCOM4[2] D
 #define PIN_SLAVE_SCK   PIN_PB13 // SERCOM4[1] C
 #define PIN_ENABLE      PIN_PA15
+#define PIN_ENABLE_EIC_INDEX 15 
 
 // SPI Slave Settings
 #define SPI_SLAVE_DIPO      (0x3) // PAD3 = Data in

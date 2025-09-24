@@ -10,6 +10,11 @@
 #include <stdbool.h>
 #include "gate_driver.h"
 
+#define MOTOR_IDENT_UNKNOWN  (0b00)
+#define MOTOR_IDENT_SUPPLY   (0b10)
+#define MOTOR_IDENT_TAKEUP   (0b01)
+#define MOTOR_IDENT_CAPSTAN  (0b11)
+
 typedef struct {
 	uint16_t poles;
     float offset;
@@ -23,6 +28,7 @@ extern MotorConfig MOTOR_CONF_CAPSTAN;
 
 float motor_get_position();
 float motor_get_pole_position();
+void motor_init_from_ident();
 void motor_init(MotorConfig* motor_config);
 float motor_get_pole_pos_from_theta(float theta);
 void motor_energize_coils(float a, float b, float c);
@@ -35,4 +41,5 @@ void motor_disable();
 void motor_set_high_z();
 void motor_calibrate_encoder();
 void motor_print_reg(uint8_t address, char* name);
+uint8_t motor_get_identity();
 
