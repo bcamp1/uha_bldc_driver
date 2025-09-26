@@ -17,9 +17,6 @@
 #include "../periphs/delay.h"
 #include "../board.h"
 
-#define MOTOR_POLES 4
-#define TORQUE_LIMIT (0.4f)
-
 static uint8_t identity = MOTOR_IDENT_UNKNOWN;
 
 MotorConfig MOTOR_CONF_SUPPLY = {
@@ -37,7 +34,7 @@ MotorConfig MOTOR_CONF_TAKEUP = {
 };
 
 MotorConfig MOTOR_CONF_CAPSTAN = {
-    .offset = 6.0868f,
+    .offset = 1.0021f,
     .poles = 3,
     .speed_control = true,
     .max_torque = 0.2f,
@@ -96,7 +93,7 @@ float motor_get_position() {
 float motor_get_pole_position() {
 	float theta = motor_get_position();
 	theta -= config->offset;
-	theta *= (float) MOTOR_POLES;
+	theta *= (float) config->poles;
 	while (theta < 0) theta += 2*PI;
 	while (theta > 2*PI) theta -= 2*PI;
 	return theta;
@@ -104,7 +101,7 @@ float motor_get_pole_position() {
 
 float motor_get_pole_pos_from_theta(float theta) {
 	theta -= config->offset;
-	theta *= (float) MOTOR_POLES;
+	theta *= (float) config->poles;
 	while (theta < 0) theta += 2*PI;
 	while (theta > 2*PI) theta -= 2*PI;
 	return theta;
@@ -114,7 +111,7 @@ void motor_set_torque(float torque, float pole_position) {
     // Scale down torque + saturate
     if (torque > 1.0f) torque = 1.0f;
     if (torque < -1.0f) torque = -1.0f;
-    torque *= TORQUE_LIMIT;
+    torque *= config->max_torque;
 
     // Get PWM values
     float a = 0;
@@ -140,7 +137,7 @@ void motor_set_align(float torque, float pole_position) {
     // Scale down torque + saturate
     if (torque > 1.0f) torque = 1.0f;
     if (torque < -1.0f) torque = -1.0f;
-    torque *= TORQUE_LIMIT;
+    torque *= config->max_torque;
 
     // Get PWM values
     float a = 0;

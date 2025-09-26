@@ -95,7 +95,8 @@ static void encoder_test() {
 
 void foc_loop() {
     float pole_position = motor_get_pole_position();
-    motor_set_torque(0.4f, pole_position);
+    float torque = spi_slave_get_torque_command();
+    motor_set_torque(torque, pole_position);
 }
 
 void current_printer() {
@@ -109,6 +110,36 @@ void current_printer() {
     __disable_irq();
     uart_println_float_arr(currents, 4);
     __set_PRIMASK(primask);
+}
+
+static void initialize_motor_module() {
+    uart_println("Motor module enabled");
+    spi_slave_init();
+    motor_init_from_ident();
+    motor_enable();
+    delay(0xFFF);
+    uart_put('\n');
+    uart_put('\n');
+    //motor_calibrate_encoder();
+    //gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
+    motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
+    motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
+    motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
+    motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
+    motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
+    gpio_set_pin(PIN_DEBUG1);
+
+    // Schedule FOC loop
+    timer_schedule(0, 1000, 1, foc_loop);
+} 
+
+static void deinitialize_motor_module() {
+    uart_println("Motor module disabled");
+    motor_disable();
+    gpio_clear_pin(PIN_DEBUG1);
+
+    // Unschedule FOC loop
+    timer_deschedule(0);
 }
 
 static void motor_test() {
@@ -137,25 +168,10 @@ static void motor_test() {
 void enable_callback() {
     if (gpio_get_pin(PIN_ENABLE)) {
         // Module has been enabled. Initialize everything and begin.    
-        uart_println("Motor module enabled");
-        motor_init_from_ident();
-        motor_enable();
-        delay(0xFFF);
-        uart_put('\n');
-        uart_put('\n');
-        //motor_calibrate_encoder();
-        //gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
-        motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
-        motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
-        motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
-        motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
-        motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
-        gpio_set_pin(PIN_DEBUG1);
+        initialize_motor_module();
     } else {
         // Module has been shut down. Uninitialize anything here.
-        uart_println("Motor module disabled");
-        motor_disable();
-        gpio_clear_pin(PIN_DEBUG1);
+        deinitialize_motor_module();
     }
 }
 
@@ -169,10 +185,15 @@ int main(void) {
     gpio_clear_pin(PIN_DEBUG1);
     gpio_clear_pin(PIN_DEBUG2);
 
-    eic_init_pin(PIN_ENABLE, PIN_ENABLE_EIC_INDEX, EIC_MODE_BOTH, enable_callback);
+    //eic_init_pin(PIN_ENABLE, PIN_ENABLE_EIC_INDEX, EIC_MODE_BOTH, enable_callback);
     //gpio_set_pin(PIN_DEBUG1);
 
+    spi_slave_init();
+    //initialize_motor_module();
+
 	while (1) {
+        uart_println_int_base(spi_slave_get_torque_command_uint(), 16);
+        //uart_println_float(spi_slave_get_torque_command());
         //uart_println("HELLO");
 	}
 }

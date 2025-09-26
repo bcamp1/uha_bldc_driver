@@ -7,7 +7,7 @@
 #include <sam.h>
 //#include "../periphs/clocks.h"
 
-static volatile uint16_t torque_command = 0;
+static volatile int16_t torque_command = 0;
 static volatile uint16_t torque_command_dirty = 0;
 static volatile uint16_t byte_index = 0;
 
@@ -49,7 +49,7 @@ void spi_slave_init() {
     // Enable interrupts
     SPI_SLAVE->INTENSET.bit.RXC = 1;
     SPI_SLAVE->INTENSET.bit.DRE = 1;
-    SPI_SLAVE->INTENSET.bit.SSL = 1;
+    //SPI_SLAVE->INTENSET.bit.SSL = 1;
 
 	/* Finally, enable it! */
 	SPI_SLAVE->CTRLA.bit.ENABLE = 1;
@@ -59,13 +59,21 @@ void spi_slave_init() {
     NVIC_EnableIRQ(SERCOM4_1_IRQn); 
     NVIC_EnableIRQ(SERCOM4_2_IRQn); 
     NVIC_EnableIRQ(SERCOM4_3_IRQn); 
+    torque_command = 0;
+    torque_command_dirty = 0;
 }
 
-uint16_t spi_slave_get_torque_command() {
-    return torque_command;
+float spi_slave_get_torque_command() {
+    return ((float) torque_command) / 32760.0f;
+}
+
+uint16_t spi_slave_get_torque_command_uint() {
+    return (uint16_t) torque_command;
 }
 
 static void spi_slave_isr() {
+    gpio_set_pin(PIN_DEBUG2);
+    gpio_clear_pin(PIN_DEBUG2);
     if (SPI_SLAVE->INTFLAG.bit.DRE) {
         SPI_SLAVE->DATA.reg = 0x55;
     } else if (SPI_SLAVE->INTFLAG.bit.RXC) {
@@ -75,7 +83,7 @@ static void spi_slave_isr() {
             torque_command_dirty = (data << 8);
         } else if (byte_index == 2) {
             torque_command_dirty |= data;
-            torque_command = torque_command_dirty;
+            torque_command = (int16_t) torque_command_dirty;
             byte_index = 0;
         }
     } 
