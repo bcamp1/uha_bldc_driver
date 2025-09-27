@@ -61,6 +61,7 @@ void spi_slave_init() {
     NVIC_EnableIRQ(SERCOM4_3_IRQn); 
     torque_command = 0;
     torque_command_dirty = 0;
+    byte_index = 0;
 }
 
 float spi_slave_get_torque_command() {

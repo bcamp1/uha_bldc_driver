@@ -96,6 +96,14 @@ static void encoder_test() {
 void foc_loop() {
     float pole_position = motor_get_pole_position();
     float torque = spi_slave_get_torque_command();
+    //torque = 0.4f;
+    //uart_println_float(pole_position);
+    motor_set_torque(torque, pole_position);
+}
+
+static void foc_loop_capstan() {
+    float pole_position = motor_get_pole_position();
+    float torque = 0.4f;
     motor_set_torque(torque, pole_position);
 }
 
@@ -130,7 +138,13 @@ static void initialize_motor_module() {
     gpio_set_pin(PIN_DEBUG1);
 
     // Schedule FOC loop
-    timer_schedule(0, 1000, 1, foc_loop);
+    if (motor_get_identity() == MOTOR_IDENT_CAPSTAN) {
+        uart_println("Running capstan control loop");
+        timer_schedule(0, 2000, 1, foc_loop_capstan);
+    } else {
+        uart_println("Running standard control loop");
+        timer_schedule(0, 2000, 1, foc_loop);
+    }
 } 
 
 static void deinitialize_motor_module() {
@@ -140,29 +154,6 @@ static void deinitialize_motor_module() {
 
     // Unschedule FOC loop
     timer_deschedule(0);
-}
-
-static void motor_test() {
-    uart_println("Starting motor test");
-    motor_init(&MOTOR_CONF_TAKEUP);
-    motor_enable();
-    delay(0xFFF);
-    uart_put('\n');
-    uart_put('\n');
-    //motor_calibrate_encoder();
-    //gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
-    motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
-    motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
-    motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
-    motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
-    motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
-
-
-    //motor_energize_coils(0.04f, 0.0f, 0.0f);
-    
-    // Schedule FOC loop
-    timer_schedule(0, 1000, 1, foc_loop);
-    //timer_schedule(1, 50, 7, current_printer);
 }
 
 void enable_callback() {
@@ -185,14 +176,15 @@ int main(void) {
     gpio_clear_pin(PIN_DEBUG1);
     gpio_clear_pin(PIN_DEBUG2);
 
-    //eic_init_pin(PIN_ENABLE, PIN_ENABLE_EIC_INDEX, EIC_MODE_BOTH, enable_callback);
-    //gpio_set_pin(PIN_DEBUG1);
+    eic_init_pin(PIN_ENABLE, PIN_ENABLE_EIC_INDEX, EIC_MODE_BOTH, enable_callback);
 
-    spi_slave_init();
-    //initialize_motor_module();
+    if (gpio_get_pin(PIN_ENABLE)) {
+        initialize_motor_module();
+    }
 
 	while (1) {
         uart_println_int_base(spi_slave_get_torque_command_uint(), 16);
+        delay(0x4FFF);
         //uart_println_float(spi_slave_get_torque_command());
         //uart_println("HELLO");
 	}
