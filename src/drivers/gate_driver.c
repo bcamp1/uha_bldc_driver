@@ -140,6 +140,7 @@ void gate_driver_enable() {
 }
 
 void gate_driver_disable() {
+    gate_driver_set_high_z();
 	gpio_clear_pin(PIN_GATE_ENABLE);
     delay(0xFFF);
 }
