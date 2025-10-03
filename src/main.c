@@ -106,7 +106,7 @@ void foc_loop() {
     float torque = spi_slave_get_torque_command();
     //torque = 0.4f;
     //uart_println_float(pole_position);
-    //motor_set_torque(torque, pole_position);
+    motor_set_torque(torque, pole_position);
 }
 
 static float capstan_theta = 0.0f;
@@ -120,7 +120,7 @@ static void foc_loop_capstan() {
     }
     //float pole_position = motor_get_pole_position();
     float torque = CAPSTAN_MOTOR_STRENGTH;
-    //motor_set_align(torque, capstan_theta);
+    motor_set_align(torque, capstan_theta);
     gpio_clear_pin(PIN_DEBUG2);
 }
 
@@ -194,15 +194,18 @@ int main(void) {
     uart_println(FIRMWARE_AUTHOR);
     uart_println(FIRMWARE_DATE);
     uart_println("--------------------");
-    delay(0xFFFF);
-
-	gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
-	gpio_init_pin(PIN_DEBUG2, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
+    gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
+    gpio_init_pin(PIN_DEBUG2, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
 
     gpio_clear_pin(PIN_DEBUG1);
     gpio_clear_pin(PIN_DEBUG2);
 
-    motor_init_from_ident();
+    delay(0x3FFFF);
+    
+    do {
+        motor_init_from_ident();
+    } while (motor_get_identity() == MOTOR_IDENT_UNKNOWN);
+
     motor_enable();
     //motor_calibrate_encoder();
     spi_slave_init();
