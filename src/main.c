@@ -21,6 +21,10 @@
 #include "periphs/spi.h"
 #include "periphs/eic.h"
 
+#define FIRMWARE_VERSION "UHA BLDC FIRMWARE v0.1"
+#define FIRMWARE_AUTHOR "AUTHOR: BRANSON CAMP"
+#define FIRMWARE_DATE "DATE: OCTOBER 2025"
+
 #define CAPSTAN_POLE_FREQ       (285.805f)
 #define CAPSTAN_SAMPLE_RATE     (20000.0f)
 #define CAPSTAN_MOTOR_STRENGTH  (1.0f)
@@ -181,6 +185,15 @@ void enable_callback() {
 
 int main(void) {
 	init_peripherals();
+    delay(0xFFF);
+
+    // Print firmware info
+    uart_println("\n");
+    uart_println("--------------------");
+    uart_println(FIRMWARE_VERSION);
+    uart_println(FIRMWARE_AUTHOR);
+    uart_println(FIRMWARE_DATE);
+    uart_println("--------------------");
     delay(0xFFFF);
 
 	gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
