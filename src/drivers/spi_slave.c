@@ -48,6 +48,7 @@ void spi_slave_init() {
 
     // Enable interrupts
     SPI_SLAVE->INTENSET.bit.RXC = 1;
+    SPI_SLAVE->INTENSET.bit.TXC = 1;
     SPI_SLAVE->INTENSET.bit.DRE = 1;
     //SPI_SLAVE->INTENSET.bit.SSL = 1;
 
@@ -73,11 +74,13 @@ uint16_t spi_slave_get_torque_command_uint() {
 }
 
 static void spi_slave_isr() {
-    gpio_set_pin(PIN_DEBUG2);
-    gpio_clear_pin(PIN_DEBUG2);
+    gpio_set_pin(PIN_DEBUG1);
+    gpio_clear_pin(PIN_DEBUG1);
     if (SPI_SLAVE->INTFLAG.bit.DRE) {
         SPI_SLAVE->DATA.reg = 0x55;
     } else if (SPI_SLAVE->INTFLAG.bit.RXC) {
+        gpio_set_pin(PIN_DEBUG2);
+        gpio_clear_pin(PIN_DEBUG2);
         uint16_t data = SPI_SLAVE->DATA.reg;
         byte_index++;
         if (byte_index == 1) {
@@ -87,22 +90,45 @@ static void spi_slave_isr() {
             torque_command = (int16_t) torque_command_dirty;
             byte_index = 0;
         }
-    } 
+    } else if (SPI_SLAVE->INTFLAG.bit.TXC) {
+        gpio_set_pin(PIN_DEBUG2);
+        gpio_clear_pin(PIN_DEBUG2);
+    }
 }
 
+// Handles DRE
 void SERCOM4_0_Handler() {
-    spi_slave_isr();
+    //spi_slave_isr();
+    SPI_SLAVE->DATA.reg = 0x55;
 }
 
+// Handles TXC
 void SERCOM4_1_Handler() {
-    spi_slave_isr();
+    //spi_slave_isr();
+    gpio_set_pin(PIN_DEBUG1);
+    gpio_clear_pin(PIN_DEBUG1);
+    byte_index = 0;
+    SPI_SLAVE->DATA.reg = 0x55;
+    SPI_SLAVE->INTFLAG.bit.TXC = 1;
 }
 
+// Handles RXC
 void SERCOM4_2_Handler() {
-    spi_slave_isr();
+    gpio_set_pin(PIN_DEBUG2);
+    gpio_clear_pin(PIN_DEBUG2);
+    //spi_slave_isr();
+    uint16_t data = SPI_SLAVE->DATA.reg;
+    byte_index++;
+    if (byte_index == 1) {
+        torque_command_dirty = (data << 8);
+    } else if (byte_index == 2) {
+        torque_command_dirty |= data;
+        torque_command = (int16_t) torque_command_dirty;
+        byte_index = 0;
+    }
 }
 
 void SERCOM4_3_Handler() {
-    spi_slave_isr();
+    //spi_slave_isr();
 }
 
