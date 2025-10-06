@@ -98,8 +98,10 @@ static void spi_slave_isr() {
     }
 }
 
-#define SPEED_TRANSMITTED_CUTOFF (20.0f);
+#define SPEED_TRANSMITTED_CUTOFF (40.0f);
 static int16_t motor_speed_int = 0;
+static uint8_t motor_speed_msb = 0;
+static uint8_t motor_speed_lsb = 0;
 
 static int16_t get_speed_int() {
     float motor_speed = foc_loop_get_speed();
@@ -111,31 +113,31 @@ static int16_t get_speed_int() {
 
 // Handles DRE
 void SERCOM4_0_Handler() {
-    gpio_set_pin(PIN_DEBUG2);
-    gpio_clear_pin(PIN_DEBUG2);
+    //gpio_set_pin(PIN_DEBUG2);
+    //gpio_clear_pin(PIN_DEBUG2);
     //spi_slave_isr();
-    SPI_SLAVE->DATA.reg = 0x55;
-    /*
+    //SPI_SLAVE->DATA.reg = 0x55;
     if (byte_index == 0) {
-        SPI_SLAVE->DATA.reg = (((uint16_t)motor_speed_int) >> 8) & 0xFF;
+        SPI_SLAVE->DATA.reg = motor_speed_lsb;
     } else {
-        SPI_SLAVE->DATA.reg = ((uint16_t)motor_speed_int) & 0xFF;
+        SPI_SLAVE->DATA.reg = motor_speed_msb;
     }
-    */
 }
 
 // Handles TXC
 void SERCOM4_1_Handler() {
     //spi_slave_isr();
     motor_speed_int = get_speed_int();
+    motor_speed_msb = (((uint16_t)motor_speed_int) >> 8) & 0xFF;
+    motor_speed_lsb = ((uint16_t)motor_speed_int) & 0xFF;
     byte_index = 0;
     SPI_SLAVE->INTFLAG.bit.TXC = 1;
 }
 
 // Handles RXC
 void SERCOM4_2_Handler() {
-    gpio_set_pin(PIN_DEBUG1);
-    gpio_clear_pin(PIN_DEBUG1);
+    //gpio_set_pin(PIN_DEBUG1);
+    //gpio_clear_pin(PIN_DEBUG1);
     //spi_slave_isr();
     uint16_t data = SPI_SLAVE->DATA.reg;
     byte_index++;
