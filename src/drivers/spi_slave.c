@@ -4,8 +4,10 @@
 #include "../periphs/sercom.h"
 #include "../periphs/uart.h"
 #include "samd51j20a.h"
+#include "foc_loop.h"
 #include <sam.h>
 //#include "../periphs/clocks.h"
+
 
 static volatile int16_t torque_command = 0;
 static volatile uint16_t torque_command_dirty = 0;
@@ -40,7 +42,7 @@ void spi_slave_init() {
 	gpio_init_pin(PIN_SLAVE_SCK, GPIO_DIR_IN, GPIO_ALTERNATE_C_SERCOM);
 	gpio_init_pin(PIN_SLAVE_CS, GPIO_DIR_IN, GPIO_ALTERNATE_D_SERCOM_ALT);
 
-
+    
     SPI_SLAVE->DATA.reg = 0x55;
 
     SPI_SLAVE->CTRLB.bit.RXEN = 1;
@@ -96,26 +98,44 @@ static void spi_slave_isr() {
     }
 }
 
+#define SPEED_TRANSMITTED_CUTOFF (20.0f);
+static int16_t motor_speed_int = 0;
+
+static int16_t get_speed_int() {
+    float motor_speed = foc_loop_get_speed();
+    motor_speed /= SPEED_TRANSMITTED_CUTOFF;
+    if (motor_speed > 1.0f) motor_speed = 1.0f;
+    if (motor_speed < -1.0f) motor_speed = -1.0f;
+    return (int16_t) (32767.0f * motor_speed);
+}
+
 // Handles DRE
 void SERCOM4_0_Handler() {
+    gpio_set_pin(PIN_DEBUG2);
+    gpio_clear_pin(PIN_DEBUG2);
     //spi_slave_isr();
     SPI_SLAVE->DATA.reg = 0x55;
+    /*
+    if (byte_index == 0) {
+        SPI_SLAVE->DATA.reg = (((uint16_t)motor_speed_int) >> 8) & 0xFF;
+    } else {
+        SPI_SLAVE->DATA.reg = ((uint16_t)motor_speed_int) & 0xFF;
+    }
+    */
 }
 
 // Handles TXC
 void SERCOM4_1_Handler() {
     //spi_slave_isr();
-    gpio_set_pin(PIN_DEBUG1);
-    gpio_clear_pin(PIN_DEBUG1);
+    motor_speed_int = get_speed_int();
     byte_index = 0;
-    SPI_SLAVE->DATA.reg = 0x55;
     SPI_SLAVE->INTFLAG.bit.TXC = 1;
 }
 
 // Handles RXC
 void SERCOM4_2_Handler() {
-    gpio_set_pin(PIN_DEBUG2);
-    gpio_clear_pin(PIN_DEBUG2);
+    gpio_set_pin(PIN_DEBUG1);
+    gpio_clear_pin(PIN_DEBUG1);
     //spi_slave_isr();
     uint16_t data = SPI_SLAVE->DATA.reg;
     byte_index++;
