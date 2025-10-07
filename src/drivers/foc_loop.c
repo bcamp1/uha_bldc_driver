@@ -9,8 +9,9 @@
 #include "../board.h"
 
 #define CAPSTAN_POLE_FREQ       (285.805f)
-#define CAPSTAN_SAMPLE_RATE     (20000.0f)
-#define CAPSTAN_MOTOR_STRENGTH  (1.0f)
+//#define CAPSTAN_POLE_FREQ       (50.805f)
+#define CAPSTAN_SAMPLE_RATE     (10000.0f)
+#define CAPSTAN_MOTOR_STRENGTH  (0.8f)
 #define TWOPI (6.28318f)
 
 static void enable_callback();

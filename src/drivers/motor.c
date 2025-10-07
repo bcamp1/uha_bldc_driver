@@ -34,10 +34,10 @@ MotorConfig MOTOR_CONF_TAKEUP = {
 };
 
 MotorConfig MOTOR_CONF_CAPSTAN = {
-    .offset = 1.0021f,
+    .offset = 0.0676f,
     .poles = 3,
     .speed_control = true,
-    .max_torque = 0.6f,
+    .max_torque = 0.8f,
 };
 
 static MotorConfig* config = NULL;
