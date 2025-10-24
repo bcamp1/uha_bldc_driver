@@ -23,14 +23,14 @@ MotorConfig MOTOR_CONF_SUPPLY = {
     .offset = 0.5809f,
     .poles = 4,
     .speed_control = false,
-    .max_torque = 0.4f,
+    .max_torque = 0.6f,
 };
 
 MotorConfig MOTOR_CONF_TAKEUP = {
     .offset = 3.0237f,
     .poles = 4,
     .speed_control = false,
-    .max_torque = 0.4f,
+    .max_torque = 0.6f,
 };
 
 MotorConfig MOTOR_CONF_CAPSTAN = {
