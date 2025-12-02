@@ -87,11 +87,17 @@ static void initialize_motor_module() {
 static void deinitialize_motor_module() {
     uart_println("Motor module disabled");
     //motor_disable();
-    motor_set_high_z();
-    gpio_clear_pin(PIN_DEBUG1);
 
-    // Unschedule FOC loop
-    timer_deschedule(0);
+    // CRITICAL: Disable interrupts to prevent race condition
+    // Must stop timer BEFORE setting high-Z to prevent FOC loop
+    // from re-enabling PWM after we've disabled it
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    timer_deschedule(0);      // Stop FOC loop FIRST
+    motor_set_high_z();       // Then safe to set high-Z
+    __set_PRIMASK(primask);
+
+    gpio_clear_pin(PIN_DEBUG1);
 }
 
 static void foc_loop() {
