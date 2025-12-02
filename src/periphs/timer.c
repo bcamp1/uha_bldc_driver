@@ -15,7 +15,7 @@
 #define CLK_DIV  (256.0f)
 
 static const Tc* timers[4] = {TC0, TC1, TC2, TC3};
-static func_ptr_t callbacks[4] = {NULL, NULL, NULL, NULL};
+static volatile func_ptr_t callbacks[4] = {NULL, NULL, NULL, NULL};
 	
 static void process_interrupt(uint16_t timer_id);
 static uint16_t calculate_count(float sample_rate);
@@ -92,12 +92,29 @@ void timer_schedule(uint16_t timer_id, float sample_rate, uint16_t priority, fun
 void timer_deschedule(uint16_t timer_id) {
 	TcCount16* TIMER = &timers[timer_id]->COUNT16;
 
-    // Disable timer
-    TIMER->CTRLA.bit.ENABLE = 0;
-	while (TIMER->SYNCBUSY.bit.ENABLE) {}
-    
-    // Remove callback
+    // 1. Clear callback FIRST (with volatile, ensures fresh read in ISR)
     callbacks[timer_id] = NULL;
+    __DSB();  // Data Synchronization Barrier - force write to complete
+
+    // 2. Disable interrupt at peripheral level
+    TIMER->INTENCLR.bit.MC0 = 1;
+
+    // 3. Clear any pending interrupt flag at peripheral
+    TIMER->INTFLAG.bit.MC0 = 1;
+
+    // 4. Disable timer
+    TIMER->CTRLA.bit.ENABLE = 0;
+    while (TIMER->SYNCBUSY.bit.ENABLE) {}
+
+    // 5. Clear NVIC pending interrupt
+    if (timer_id == 0) NVIC_ClearPendingIRQ(TC0_IRQn);
+    else if (timer_id == 1) NVIC_ClearPendingIRQ(TC1_IRQn);
+    else if (timer_id == 2) NVIC_ClearPendingIRQ(TC2_IRQn);
+    else if (timer_id == 3) NVIC_ClearPendingIRQ(TC3_IRQn);
+
+    // 6. Memory barriers to ensure all operations complete before returning
+    __DSB();  // Ensure all memory writes complete
+    __ISB();  // Flush instruction pipeline
 }
 
 static uint16_t calculate_count(float sample_rate) {
