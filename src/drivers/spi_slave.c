@@ -76,13 +76,9 @@ uint16_t spi_slave_get_torque_command_uint() {
 }
 
 static void spi_slave_isr() {
-    gpio_set_pin(PIN_DEBUG1);
-    gpio_clear_pin(PIN_DEBUG1);
     if (SPI_SLAVE->INTFLAG.bit.DRE) {
         SPI_SLAVE->DATA.reg = 0x55;
     } else if (SPI_SLAVE->INTFLAG.bit.RXC) {
-        gpio_set_pin(PIN_DEBUG2);
-        gpio_clear_pin(PIN_DEBUG2);
         uint16_t data = SPI_SLAVE->DATA.reg;
         byte_index++;
         if (byte_index == 1) {
@@ -93,8 +89,6 @@ static void spi_slave_isr() {
             byte_index = 0;
         }
     } else if (SPI_SLAVE->INTFLAG.bit.TXC) {
-        gpio_set_pin(PIN_DEBUG2);
-        gpio_clear_pin(PIN_DEBUG2);
     }
 }
 

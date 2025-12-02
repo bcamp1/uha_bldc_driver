@@ -8,6 +8,7 @@
 #include "eic.h"
 #include "sam.h"
 #include "gpio.h"
+#include "../board.h"
 
 static func_ptr_t callbacks[16];
 
@@ -22,9 +23,9 @@ void eic_init() {
 	// Enable the peripheral channel
 	GCLK->PCHCTRL[EIC_GCLK_ID].bit.CHEN = 1;
 
-    // Set NVIC priorities (roller encoder)
-    NVIC_SetPriority(EIC_10_IRQn, 0);
-	
+    // Set NVIC priorities - EIC_15 lower priority than TC0 to prevent preemption
+    NVIC_SetPriority(EIC_15_IRQn, 1);
+
 	// Enable EIC interrupts
 	NVIC_EnableIRQ(EIC_0_IRQn);
 	NVIC_EnableIRQ(EIC_1_IRQn);
@@ -83,12 +84,10 @@ void eic_init_pin(uint16_t pin, uint16_t ext_num, uint16_t int_mode, func_ptr_t 
 	while (EIC->SYNCBUSY.bit.ENABLE);
 }
 
-void EIC_10_Handler(void) {
-	process_interrupt(10);
-}
-
 void EIC_15_Handler(void) {
+	gpio_set_pin(PIN_DEBUG2);      // DEBUG: Trace EIC_15 (ENABLE) firing
 	process_interrupt(15);
+	gpio_clear_pin(PIN_DEBUG2);
 }
 
 static void process_interrupt(uint16_t ext_num) {

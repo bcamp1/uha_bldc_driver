@@ -9,6 +9,8 @@
 #include "sam.h"
 #include "samd51j20a.h"
 #include "uart.h"
+#include "gpio.h"
+#include "../board.h"
 #include <stddef.h>
 
 #define CLK_FREQ (120000000.0f)
@@ -20,7 +22,8 @@ static volatile func_ptr_t callbacks[4] = {NULL, NULL, NULL, NULL};
 static void process_interrupt(uint16_t timer_id);
 static uint16_t calculate_count(float sample_rate);
 
-static uint16_t priorities[4] = {1, 1, 1, 1};
+// TC0 priority 0 (highest) so EIC can't preempt FOC loop mid-execution
+static uint16_t priorities[4] = {0, 1, 1, 1};
 
 void timer_init_all() {
 	// Enable TCC bus clocks
@@ -96,15 +99,15 @@ void timer_deschedule(uint16_t timer_id) {
     callbacks[timer_id] = NULL;
     __DSB();  // Data Synchronization Barrier - force write to complete
 
-    // 2. Disable interrupt at peripheral level
-    TIMER->INTENCLR.bit.MC0 = 1;
-
-    // 3. Clear any pending interrupt flag at peripheral
-    TIMER->INTFLAG.bit.MC0 = 1;
-
-    // 4. Disable timer
+    // 2. Disable timer FIRST - stop it from setting INTFLAG again!
     TIMER->CTRLA.bit.ENABLE = 0;
     while (TIMER->SYNCBUSY.bit.ENABLE) {}
+
+    // 3. Disable interrupt at peripheral level
+    TIMER->INTENCLR.bit.MC0 = 1;
+
+    // 4. Clear any pending interrupt flag at peripheral
+    TIMER->INTFLAG.bit.MC0 = 1;
 
     // 5. Clear NVIC pending interrupt
     if (timer_id == 0) NVIC_ClearPendingIRQ(TC0_IRQn);
@@ -145,7 +148,9 @@ static void process_interrupt(uint16_t timer_id) {
 
 // Interrupt Handlers
 void TC0_Handler(void) {
+	gpio_set_pin(PIN_DEBUG1);      // DEBUG: Trace TC0 interrupt firing
 	process_interrupt(0);
+	gpio_clear_pin(PIN_DEBUG1);
 }
 
 void TC1_Handler(void) {

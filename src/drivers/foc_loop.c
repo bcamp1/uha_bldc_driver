@@ -72,7 +72,6 @@ static void initialize_motor_module() {
     //motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
     //motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
     //motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
-    gpio_set_pin(PIN_DEBUG1);
 
     // Schedule FOC loop
     if (motor_get_identity() == MOTOR_IDENT_CAPSTAN) {
@@ -96,8 +95,6 @@ static void deinitialize_motor_module() {
     timer_deschedule(0);      // Stop FOC loop FIRST
     motor_set_high_z();       // Then safe to set high-Z
     __set_PRIMASK(primask);
-
-    gpio_clear_pin(PIN_DEBUG1);
 }
 
 static void foc_loop() {
@@ -115,7 +112,6 @@ static void foc_loop() {
 static float capstan_theta = 0.0f;
 
 static void foc_loop_capstan() {
-    gpio_set_pin(PIN_DEBUG2);
     float theta_increment = CAPSTAN_POLE_FREQ / CAPSTAN_SAMPLE_RATE;
     capstan_theta += theta_increment;
     if (capstan_theta > 6.28318f) {
@@ -124,7 +120,6 @@ static void foc_loop_capstan() {
     //float pole_position = motor_get_pole_position();
     float torque = CAPSTAN_MOTOR_STRENGTH;
     motor_set_align(torque, capstan_theta);
-    gpio_clear_pin(PIN_DEBUG2);
 }
 
 void foc_loop_init() {

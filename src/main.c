@@ -17,7 +17,6 @@
 #include "periphs/timer.h"
 #include "drivers/curr_sense.h"
 #include "drivers/foc_loop.h"
-#include "drivers/pwm_capture.h"
 #include "drivers/spi_slave.h"
 #include "periphs/spi.h"
 #include "periphs/eic.h"
