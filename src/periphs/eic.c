@@ -85,9 +85,9 @@ void eic_init_pin(uint16_t pin, uint16_t ext_num, uint16_t int_mode, func_ptr_t 
 }
 
 void EIC_15_Handler(void) {
-	gpio_set_pin(PIN_DEBUG2);      // DEBUG: Trace EIC_15 (ENABLE) firing
+	//gpio_set_pin(PIN_DEBUG2);      // DEBUG: Trace EIC_15 (ENABLE) firing
 	process_interrupt(15);
-	gpio_clear_pin(PIN_DEBUG2);
+	//gpio_clear_pin(PIN_DEBUG2);
 }
 
 static void process_interrupt(uint16_t ext_num) {

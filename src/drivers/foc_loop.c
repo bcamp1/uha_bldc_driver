@@ -59,7 +59,6 @@ static void enable_callback() {
 }
 
 static void initialize_motor_module() {
-    uart_println("Motor module enabled");
     //motor_init_from_ident();
     //motor_enable();
     delay(0xFFF);
@@ -76,25 +75,27 @@ static void initialize_motor_module() {
     // Schedule FOC loop
     if (motor_get_identity() == MOTOR_IDENT_CAPSTAN) {
         uart_println("Running capstan control loop");
-        timer_schedule(0, CAPSTAN_SAMPLE_RATE, 1, foc_loop_capstan);
+        timer_schedule(0, CAPSTAN_SAMPLE_RATE, 0, foc_loop_capstan);
     } else {
         uart_println("Running standard control loop");
-        timer_schedule(0, foc_loop_freq, 1, foc_loop);
+        timer_schedule(0, foc_loop_freq, 0, foc_loop);
     }
+    //uart_println("Motor module enabled");
 } 
 
 static void deinitialize_motor_module() {
-    uart_println("Motor module disabled");
     //motor_disable();
-
     // CRITICAL: Disable interrupts to prevent race condition
     // Must stop timer BEFORE setting high-Z to prevent FOC loop
     // from re-enabling PWM after we've disabled it
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
+    gpio_set_pin(PIN_DEBUG2);
     timer_deschedule(0);      // Stop FOC loop FIRST
     motor_set_high_z();       // Then safe to set high-Z
+    gpio_clear_pin(PIN_DEBUG2);
     __set_PRIMASK(primask);
+    //uart_println("Motor module disabled");
 }
 
 static void foc_loop() {

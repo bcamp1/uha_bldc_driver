@@ -23,7 +23,7 @@ static void process_interrupt(uint16_t timer_id);
 static uint16_t calculate_count(float sample_rate);
 
 // TC0 priority 0 (highest) so EIC can't preempt FOC loop mid-execution
-static uint16_t priorities[4] = {0, 1, 1, 1};
+static uint16_t priorities[4] = {1, 1, 1, 1};
 
 void timer_init_all() {
 	// Enable TCC bus clocks
