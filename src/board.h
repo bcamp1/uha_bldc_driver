@@ -75,4 +75,9 @@
 #define EVENT_TCC_ADC_CHANNEL (0)
 #define EVENT_EIC_TCC_CHANNEL (1)
 
+// Priorities
+#define PRIO_FOC_LOOP (1)
+#define PRIO_EIC_ENABLE (2)
+#define PRIO_SPI_SLAVE (0)
+
 

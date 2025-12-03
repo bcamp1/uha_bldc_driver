@@ -24,7 +24,7 @@ void eic_init() {
 	GCLK->PCHCTRL[EIC_GCLK_ID].bit.CHEN = 1;
 
     // Set NVIC priorities - EIC_15 lower priority than TC0 to prevent preemption
-    NVIC_SetPriority(EIC_15_IRQn, 1);
+    NVIC_SetPriority(EIC_15_IRQn, PRIO_EIC_ENABLE);
 
 	// Enable EIC interrupts
 	NVIC_EnableIRQ(EIC_0_IRQn);

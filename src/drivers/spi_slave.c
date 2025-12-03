@@ -58,6 +58,11 @@ void spi_slave_init() {
 	SPI_SLAVE->CTRLA.bit.ENABLE = 1;
 	while (SPI_SLAVE->SYNCBUSY.bit.ENABLE) {};
 
+    NVIC_SetPriority(SERCOM4_0_IRQn, PRIO_SPI_SLAVE);
+    NVIC_SetPriority(SERCOM4_1_IRQn, PRIO_SPI_SLAVE);
+    NVIC_SetPriority(SERCOM4_2_IRQn, PRIO_SPI_SLAVE);
+    NVIC_SetPriority(SERCOM4_3_IRQn, PRIO_SPI_SLAVE);
+
     NVIC_EnableIRQ(SERCOM4_0_IRQn); 
     NVIC_EnableIRQ(SERCOM4_1_IRQn); 
     NVIC_EnableIRQ(SERCOM4_2_IRQn); 

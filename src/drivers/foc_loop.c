@@ -75,10 +75,10 @@ static void initialize_motor_module() {
     // Schedule FOC loop
     if (motor_get_identity() == MOTOR_IDENT_CAPSTAN) {
         uart_println("Running capstan control loop");
-        timer_schedule(0, CAPSTAN_SAMPLE_RATE, 0, foc_loop_capstan);
+        timer_schedule(0, CAPSTAN_SAMPLE_RATE, PRIO_FOC_LOOP, foc_loop_capstan);
     } else {
         uart_println("Running standard control loop");
-        timer_schedule(0, foc_loop_freq, 0, foc_loop);
+        timer_schedule(0, foc_loop_freq, PRIO_FOC_LOOP, foc_loop);
     }
     //uart_println("Motor module enabled");
 } 
