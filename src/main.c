@@ -141,7 +141,7 @@ int main(void) {
 
 	while (1) {
         if (gpio_get_pin(PIN_ENABLE)) {
-            uart_println_int_base(spi_slave_get_torque_command_uint(), 16);
+            //uart_println_float(spi_slave_get_torque_command());
             delay(0x4FFF);
         }
 	}

@@ -148,9 +148,9 @@ static void process_interrupt(uint16_t timer_id) {
 
 // Interrupt Handlers
 void TC0_Handler(void) {
-	gpio_set_pin(PIN_DEBUG1);      // DEBUG: Trace TC0 interrupt firing
+	//gpio_set_pin(PIN_DEBUG1);      // DEBUG: Trace TC0 interrupt firing
 	process_interrupt(0);
-	gpio_clear_pin(PIN_DEBUG1);
+	//gpio_clear_pin(PIN_DEBUG1);
 }
 
 void TC1_Handler(void) {

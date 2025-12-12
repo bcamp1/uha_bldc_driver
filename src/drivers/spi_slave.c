@@ -141,11 +141,13 @@ void SERCOM4_2_Handler() {
     uint16_t data = SPI_SLAVE->DATA.reg;
     byte_index++;
     if (byte_index == 1) {
+        gpio_set_pin(PIN_DEBUG2);
         torque_command_dirty = (data << 8);
     } else if (byte_index == 2) {
         torque_command_dirty |= data;
         torque_command = (int16_t) torque_command_dirty;
         byte_index = 0;
+        gpio_clear_pin(PIN_DEBUG2);
     }
 }
 

@@ -99,15 +99,17 @@ static void deinitialize_motor_module() {
 }
 
 static void foc_loop() {
+    gpio_set_pin(PIN_DEBUG1);
     prev_pos = curr_pos;
     curr_pos = motor_get_position();
     float pole_position = motor_get_pole_pos_from_theta(curr_pos);
     float torque = spi_slave_get_torque_command();
-
+    torque = -0.57f;
     // Calculate speed
     speed = foc_loop_freq * sub_angles(curr_pos, prev_pos);
 
     motor_set_torque(torque, pole_position);
+    gpio_clear_pin(PIN_DEBUG1);
 }
 
 static float capstan_theta = 0.0f;
