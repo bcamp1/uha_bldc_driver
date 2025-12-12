@@ -1,4 +1,0 @@
-/home/brans/dev/embed/uha_mc/CMakeFiles/build.dir
-/home/brans/dev/embed/uha_mc/CMakeFiles/flash.dir
-/home/brans/dev/embed/uha_mc/CMakeFiles/edit_cache.dir
-/home/brans/dev/embed/uha_mc/CMakeFiles/rebuild_cache.dir
