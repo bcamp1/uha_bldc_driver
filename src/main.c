@@ -19,6 +19,7 @@
 #include "drivers/foc_loop.h"
 #include "drivers/spi_slave.h"
 #include "periphs/spi.h"
+#include "periphs/spi_async.h"
 #include "periphs/eic.h"
 
 #define FIRMWARE_VERSION "UHA BLDC FIRMWARE v0.1"
@@ -91,9 +92,12 @@ static void encoder_test() {
     motor_init(&MOTOR_CONF_TAKEUP);
     motor_enable();
     while (true) {
-        float pos = motor_get_pole_position();
+        spi_async_start_read(NULL);
+        uint16_t raw_result = spi_async_get_safe_result();
+        uint16_t result = raw_result & 0x3FFF;
+        //float pos = motor_get_pole_position();
         uart_print("POS: ");
-        uart_println_float(pos);
+        uart_println_int_base(result, 16);
         delay(0x7FFF);
     }
 }

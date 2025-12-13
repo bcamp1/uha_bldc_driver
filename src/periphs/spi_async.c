@@ -3,15 +3,18 @@
 #include "uart.h"
 #include "spi_async.h"
 #include "../board.h"
+#include "../periphs/delay.h"
 
 // Hardcoded to SERCOM3 for motor encoder (SPI_CONF_MTR_ENCODER)
 #define SPI_SERCOM SERCOM3
+#define INTER_BYTE_DELAY (100)  // Delay between bytes for slave to prepare
 
 static spi_callback_t user_callback = NULL;
 static volatile bool spi_busy = false;
 static volatile uint16_t result = 0;
 static volatile uint16_t safe_result = 0;  // Last completed result
-static volatile uint8_t byte_count = 0;    // Bytes transferred
+static volatile uint8_t tx_count = 0;      // Bytes sent
+static volatile uint8_t rx_count = 0;      // Bytes received
 
 void spi_async_init() {
 	// Uses SPI_CONF_MTR_ENCODER settings
@@ -57,7 +60,10 @@ void spi_async_init() {
 	gpio_set_pin(inst->cs);
 
 	/* Enable SPI */
+	SPI_SERCOM->SPI.CTRLB.bit.CHSIZE = 0;  // 8-bit character size
 	SPI_SERCOM->SPI.CTRLB.bit.RXEN = 1;
+	while (SPI_SERCOM->SPI.SYNCBUSY.bit.CTRLB) {};
+
 	SPI_SERCOM->SPI.CTRLA.bit.ENABLE = 1;
 	while (SPI_SERCOM->SPI.SYNCBUSY.bit.ENABLE) {};
 }
@@ -69,12 +75,16 @@ void spi_async_start_read(spi_callback_t callback) {
 	gpio_clear_pin(SPI_CONF_MTR_ENCODER.cs);
 
     result = 0;
-    byte_count = 0;
+    tx_count = 0;
+    rx_count = 0;
     user_callback = callback;
     spi_busy = true;
 
-    // Start transfer by enabling DRE interrupt
+    // Disable both interrupts first
+    SPI_SERCOM->SPI.INTENCLR.bit.DRE = 1;
     SPI_SERCOM->SPI.INTENCLR.bit.RXC = 1;
+
+    // Enable DRE to send first byte
     SPI_SERCOM->SPI.INTENSET.bit.DRE = 1;
 }
 
@@ -92,35 +102,46 @@ bool spi_async_is_busy() {
 
 // DRE interrupt - ready to send next byte
 void SERCOM3_0_Handler(void) {
+    gpio_set_pin(PIN_DEBUG1);
     if (SPI_SERCOM->SPI.INTFLAG.bit.DRE) {
-        if (byte_count < 2) {
+        // Always disable DRE first to prevent re-entry
+        SPI_SERCOM->SPI.INTENCLR.bit.DRE = 1;
+
+        if (tx_count < 2) {
             // Send dummy byte (0x00) to clock in data
             SPI_SERCOM->SPI.DATA.reg = 0x00;
+            tx_count++;
 
-            // Disable DRE, enable RXC to wait for received byte
-            SPI_SERCOM->SPI.INTENCLR.bit.DRE = 1;
+            // Enable RXC to wait for received byte
             SPI_SERCOM->SPI.INTENSET.bit.RXC = 1;
-        } else {
-            // Already sent 2 bytes, disable DRE
-            SPI_SERCOM->SPI.INTENCLR.bit.DRE = 1;
         }
     }
+    gpio_clear_pin(PIN_DEBUG1);
 }
 
 // RXC interrupt - byte received
 void SERCOM3_2_Handler(void) {
+    gpio_set_pin(PIN_DEBUG2);
     if (SPI_SERCOM->SPI.INTFLAG.bit.RXC) {
-        uint8_t data = SPI_SERCOM->SPI.DATA.reg;
-        byte_count++;
+        uint8_t data = SPI_SERCOM->SPI.DATA.reg & 0xFF;
+        rx_count++;
 
-        if (byte_count == 1) {
+        if (rx_count == 1) {
             // First byte (MSB)
             result = (uint16_t)data << 8;
 
-            // Prepare for second byte
+            // Delay to give slave time to prepare second byte
+            delay(INTER_BYTE_DELAY);
+
+            // Prepare for second byte - only enable DRE if we haven't sent 2 yet
             SPI_SERCOM->SPI.INTENCLR.bit.RXC = 1;
-            SPI_SERCOM->SPI.INTENSET.bit.DRE = 1;
-        } else if (byte_count == 2) {
+            if (tx_count < 2) {
+                SPI_SERCOM->SPI.INTENSET.bit.DRE = 1;
+            } else {
+                // Already sent 2 bytes, just wait for second RXC
+                SPI_SERCOM->SPI.INTENSET.bit.RXC = 1;
+            }
+        } else if (rx_count == 2) {
             // Second byte (LSB) - transfer complete
             result |= (uint16_t)data;
 
@@ -140,5 +161,6 @@ void SERCOM3_2_Handler(void) {
             if (user_callback) user_callback();
         }
     }
+    gpio_clear_pin(PIN_DEBUG2);
 }
 

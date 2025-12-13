@@ -127,8 +127,8 @@ void SERCOM4_0_Handler() {
 
 // Handles TXC
 void SERCOM4_1_Handler() {
-    gpio_set_pin(PIN_DEBUG2);
-    gpio_clear_pin(PIN_DEBUG2);
+    //gpio_set_pin(PIN_DEBUG2);
+    //gpio_clear_pin(PIN_DEBUG2);
     //spi_slave_isr();
     motor_speed_int = get_speed_int();
     motor_speed_msb = (((uint16_t)motor_speed_int) >> 8) & 0xFF;
