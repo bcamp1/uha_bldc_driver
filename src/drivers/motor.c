@@ -15,6 +15,7 @@
 #include "../periphs/gpio.h"
 #include "../foc/foc.h"
 #include "../periphs/delay.h"
+#include "../periphs/spi_async.h"
 #include "../board.h"
 
 static uint8_t identity = MOTOR_IDENT_UNKNOWN;
@@ -81,11 +82,76 @@ void motor_init(MotorConfig* motor_config) {
     gate_driver_init();
 
 	// Init encoder SPI
-	spi_init(&SPI_CONF_MTR_ENCODER);
+	//spi_init(&SPI_CONF_MTR_ENCODER);
+    spi_async_init();
+}
+
+static bool verify_spi_data(uint16_t data) {
+/*
+---- AMT22 Checksum Example ----
+Bits: K1 K0 D14 D13 D12 D11 D10 D9 D8 D7 D6 D5 D4 D3 D2 D1 D0
+Full response: 0x61AB
+14-bit position: 0x21AB (8619 decimal)
+Checkbit Formula
+Odd: K1 = !(H5^H3^H1^L7^L5^L3^L1)
+Even: K0 = !(H4^H2^H0^L6^L4^L2^L0)
+From the above response 0x61AB:
+Odd: 0 = !(1^0^0^1^1^1^1) = correct
+Even: 1 = !(0^0^1^0^0^0^1) = correct
+ */
+    uint8_t high = (data >> 8) & 0xFF;
+    uint8_t low = data & 0xFF;
+
+    // Extract received checksum bits
+    uint8_t k1_received = (data >> 15) & 0x01;
+    uint8_t k0_received = (data >> 14) & 0x01;
+
+    // Calculate odd parity (K1): !(H5^H3^H1^L7^L5^L3^L1)
+    uint8_t odd_parity = ((high >> 5) & 0x01) ^
+                         ((high >> 3) & 0x01) ^
+                         ((high >> 1) & 0x01) ^
+                         ((low >> 7) & 0x01) ^
+                         ((low >> 5) & 0x01) ^
+                         ((low >> 3) & 0x01) ^
+                         ((low >> 1) & 0x01);
+    uint8_t k1_calculated = !odd_parity;
+
+    // Calculate even parity (K0): !(H4^H2^H0^L6^L4^L2^L0)
+    uint8_t even_parity = ((high >> 4) & 0x01) ^
+                          ((high >> 2) & 0x01) ^
+                          ((high >> 0) & 0x01) ^
+                          ((low >> 6) & 0x01) ^
+                          ((low >> 4) & 0x01) ^
+                          ((low >> 2) & 0x01) ^
+                          ((low >> 0) & 0x01);
+    uint8_t k0_calculated = !even_parity;
+
+    // Return true if both checksum bits match
+    return (k1_received == k1_calculated) && (k0_received == k0_calculated);
 }
 
 float motor_get_position() {
-    uint16_t result = spi_write_read16(&SPI_CONF_MTR_ENCODER, 0) & 0x3FFF;
+    /*
+    bool verified = false;
+    uint16_t raw_result = 0;
+    uint16_t count = 0;
+
+    while (!verified) {
+        raw_result = spi_write_read16(&SPI_CONF_MTR_ENCODER, 0);
+        verified = verify_spi_data(raw_result);
+        count++;
+    }
+    uart_print_int(count - 1);
+    if (verify_spi_data(raw_result)) {
+        uart_put('.');
+    } else {
+        uart_put('%');
+    }
+    */
+    
+    spi_async_start_read(NULL);
+    uint16_t raw_result = spi_async_get_safe_result();
+    uint16_t result = raw_result & 0x3FFF;
 	float revolution_fraction = 2.0f * PI * ((float) result / ((float) 0x3FFF));
 	return revolution_fraction;
 }

@@ -88,12 +88,13 @@ static void encoder_test() {
     delay(0xFFF);
     uart_put('\n');
     uart_put('\n');
-    motor_init(&MOTOR_CONF_SUPPLY);
+    motor_init(&MOTOR_CONF_TAKEUP);
     motor_enable();
     while (true) {
-  float pos = motor_get_pole_position();
+        float pos = motor_get_pole_position();
         uart_print("POS: ");
         uart_println_float(pos);
+        delay(0x7FFF);
     }
 }
 
@@ -128,6 +129,8 @@ int main(void) {
     gpio_clear_pin(PIN_DEBUG2);
 
     delay(0x3FFFF);
+
+    encoder_test();
     
     do {
         motor_init_from_ident();

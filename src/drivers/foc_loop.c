@@ -20,7 +20,7 @@ static void deinitialize_motor_module();
 static void foc_loop();
 static void foc_loop_capstan();
 
-static float foc_loop_freq = 1000.0f;
+static float foc_loop_freq = 1004.0f;
 
 static float curr_pos = 0.0f;
 static float prev_pos = 0.0f;

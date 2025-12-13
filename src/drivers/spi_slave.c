@@ -114,6 +114,8 @@ static int16_t get_speed_int() {
 void SERCOM4_0_Handler() {
     //gpio_set_pin(PIN_DEBUG2);
     //gpio_clear_pin(PIN_DEBUG2);
+    //gpio_set_pin(PIN_DEBUG2);
+    //gpio_clear_pin(PIN_DEBUG2);
     //spi_slave_isr();
     //SPI_SLAVE->DATA.reg = 0x55;
     if (byte_index == 0) {
@@ -125,6 +127,8 @@ void SERCOM4_0_Handler() {
 
 // Handles TXC
 void SERCOM4_1_Handler() {
+    gpio_set_pin(PIN_DEBUG2);
+    gpio_clear_pin(PIN_DEBUG2);
     //spi_slave_isr();
     motor_speed_int = get_speed_int();
     motor_speed_msb = (((uint16_t)motor_speed_int) >> 8) & 0xFF;
@@ -138,16 +142,16 @@ void SERCOM4_2_Handler() {
     //gpio_set_pin(PIN_DEBUG1);
     //gpio_clear_pin(PIN_DEBUG1);
     //spi_slave_isr();
+    //gpio_set_pin(PIN_DEBUG2);
+    //gpio_clear_pin(PIN_DEBUG2);
     uint16_t data = SPI_SLAVE->DATA.reg;
     byte_index++;
     if (byte_index == 1) {
-        gpio_set_pin(PIN_DEBUG2);
         torque_command_dirty = (data << 8);
     } else if (byte_index == 2) {
         torque_command_dirty |= data;
         torque_command = (int16_t) torque_command_dirty;
         byte_index = 0;
-        gpio_clear_pin(PIN_DEBUG2);
     }
 }
 
