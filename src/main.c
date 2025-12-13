@@ -29,6 +29,7 @@
 static void enable_fpu(void);
 static void init_peripherals(void);
 static void stopwatch_test();
+static void encoder_spi_callback();
 
 static void init_peripherals(void) {
 	// Init clock to use 32K OSC in closed-loop 48MHz mode
@@ -84,6 +85,10 @@ static void stopwatch_test() {
     }
 }
 
+static void encoder_spi_callback() {
+    spi_async_start_read(NULL);
+}
+
 static void encoder_test() {
     uart_println("Starting motor encoder test");
     delay(0xFFF);
@@ -91,13 +96,11 @@ static void encoder_test() {
     uart_put('\n');
     motor_init(&MOTOR_CONF_TAKEUP);
     motor_enable();
+    timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
     while (true) {
-        spi_async_start_read(NULL);
-        uint16_t raw_result = spi_async_get_safe_result();
-        uint16_t result = raw_result & 0x3FFF;
-        //float pos = motor_get_pole_position();
+        float pos = motor_get_pole_position();
         uart_print("POS: ");
-        uart_println_int_base(result, 16);
+        uart_println_float(pos);
         delay(0x7FFF);
     }
 }
@@ -134,11 +137,14 @@ int main(void) {
 
     delay(0x3FFFF);
 
-    encoder_test();
+    //encoder_test();
     
     do {
         motor_init_from_ident();
     } while (motor_get_identity() == MOTOR_IDENT_UNKNOWN);
+
+    timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
+    delay(0x7FFF);
 
     motor_enable();
     spi_slave_init();

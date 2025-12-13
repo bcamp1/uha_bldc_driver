@@ -104,7 +104,7 @@ static void foc_loop() {
     curr_pos = motor_get_position();
     float pole_position = motor_get_pole_pos_from_theta(curr_pos);
     float torque = spi_slave_get_torque_command();
-    torque = -0.57f;
+    //torque = -0.57f;
     // Calculate speed
     speed = foc_loop_freq * sub_angles(curr_pos, prev_pos);
 
