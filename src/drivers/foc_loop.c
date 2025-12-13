@@ -3,10 +3,13 @@
 #include "spi_slave.h"
 #include "../periphs/eic.h"
 #include "../periphs/delay.h"
+#include "../periphs/spi_async.h"
 #include "../periphs/uart.h"
 #include "../periphs/gpio.h"
 #include "../periphs/timer.h"
 #include "../board.h"
+#include <sam.h>
+#include <stddef.h>
 
 #define CAPSTAN_POLE_FREQ       (285.805f)
 //#define CAPSTAN_POLE_FREQ       (50.805f)
@@ -15,6 +18,7 @@
 #define TWOPI (6.28318f)
 
 static void enable_callback();
+static void encoder_spi_callback();
 static void initialize_motor_module();
 static void deinitialize_motor_module();
 static void foc_loop();
@@ -58,6 +62,10 @@ static void enable_callback() {
     }
 }
 
+static void encoder_spi_callback() {
+    spi_async_start_read(NULL);
+}
+
 static void initialize_motor_module() {
     //motor_init_from_ident();
     //motor_enable();
@@ -78,6 +86,8 @@ static void initialize_motor_module() {
         timer_schedule(0, CAPSTAN_SAMPLE_RATE, PRIO_FOC_LOOP, foc_loop_capstan);
     } else {
         uart_println("Running standard control loop");
+        timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
+        //delay(0x7FFFF);
         timer_schedule(0, foc_loop_freq, PRIO_FOC_LOOP, foc_loop);
     }
     //uart_println("Motor module enabled");

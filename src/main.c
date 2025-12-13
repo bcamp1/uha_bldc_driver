@@ -143,8 +143,6 @@ int main(void) {
         motor_init_from_ident();
     } while (motor_get_identity() == MOTOR_IDENT_UNKNOWN);
 
-    timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
-    delay(0x7FFF);
 
     motor_enable();
     spi_slave_init();
