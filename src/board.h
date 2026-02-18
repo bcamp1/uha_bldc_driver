@@ -48,10 +48,8 @@
 #define TCC_CMD_STOP	(0x2)
 
 // Interface with Motherboard
-#define PIN_IDENT1      PIN_PA08
-#define PIN_IDENT0      PIN_PA11
-#define PIN_SCL         PIN_PA13
-#define PIN_SDA         PIN_PA12
+#define PIN_CONFIG1     PIN_PA08
+#define PIN_CONFIG2     PIN_PA11
 #define PIN_SLAVE_SDO   PIN_PB12 // SERCOM4[0] C
 #define PIN_SLAVE_SDI   PIN_PB11 // SERCOM4[3] D
 #define PIN_SLAVE_CS    PIN_PB10 // SERCOM4[2] D

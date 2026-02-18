@@ -44,10 +44,10 @@ MotorConfig MOTOR_CONF_CAPSTAN = {
 static MotorConfig* config = NULL;
 
 void motor_init_from_ident() {
-    gpio_init_pin(PIN_IDENT1, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
-    gpio_init_pin(PIN_IDENT0, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
-    uint8_t ident1 = (uint8_t) gpio_get_pin(PIN_IDENT1);
-    uint8_t ident0 = (uint8_t) gpio_get_pin(PIN_IDENT0);
+    gpio_init_pin(PIN_CONFIG1, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
+    gpio_init_pin(PIN_CONFIG2, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
+    uint8_t ident1 = (uint8_t) gpio_get_pin(PIN_CONFIG1);
+    uint8_t ident0 = (uint8_t) gpio_get_pin(PIN_CONFIG2);
     identity = (ident1 << 1) | ident0; 
 
     switch (identity) {

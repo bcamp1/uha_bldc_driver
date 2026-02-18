@@ -50,7 +50,7 @@ static void init_peripherals(void) {
     stopwatch_init();
 
     // EIC
-    //eic_init();
+    eic_init();
 }
 
 static void enable_fpu(void) {
@@ -106,17 +106,19 @@ static void encoder_test() {
 }
 
 static void motor_test() {
-    uart_println("Starting motor encoder test");
+    uart_println("Starting motor test");
     delay(0xFFF);
     uart_put('\n');
     uart_put('\n');
     motor_init(&MOTOR_CONF_TAKEUP);
-    motor_enable();
     timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
+
+    delay(0xFFFF);
+    motor_enable();
     while (true) {
         float pos = motor_get_pole_position();
-        motor_set_torque(1.0f, pos);
-        delay(0xFFF);
+        motor_set_torque(-0.3f, pos);
+        delay(0xFF);
     }
 }
 
@@ -134,23 +136,9 @@ void current_printer() {
 }
 
 int main(void) {
-
     init_peripherals();
+    delay(0xFFF);
 
-    //encoder_test();
-    motor_test();
-
-    while (1) {
-        gpio_toggle_pin(PIN_DEBUG1);
-        gpio_toggle_pin(PIN_DEBUG2);
-        uart_println("Hello world");
-        delay(0xFFFF);
-    }
-
-    //delay(0xFFF);
-
-
-    /*
     // Print firmware info
     uart_println("\n");
     uart_println("--------------------");
@@ -189,6 +177,5 @@ int main(void) {
             delay(0x4FFF);
         }
 	}
-    */
 }
 
