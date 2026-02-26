@@ -21,14 +21,14 @@
 static uint8_t identity = MOTOR_IDENT_UNKNOWN;
 
 MotorConfig MOTOR_CONF_SUPPLY = {
-    .offset = 0.5809f,
+    .offset = 3.0237f,
     .poles = 4,
     .speed_control = false,
     .max_torque = 0.6f,
 };
 
 MotorConfig MOTOR_CONF_TAKEUP = {
-    .offset = 3.0237f,
+    .offset = 0.5809f,
     .poles = 4,
     .speed_control = false,
     .max_torque = 0.6f,
