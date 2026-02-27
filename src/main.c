@@ -170,6 +170,7 @@ int main(void) {
     foc_loop_init();
     
     //motor_calibrate_encoder();
+    //motor_test_calibration();
 
 	while (1) {
         if (gpio_get_pin(PIN_ENABLE)) {

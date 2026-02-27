@@ -27,6 +27,7 @@ extern MotorConfig MOTOR_CONF_TAKEUP;
 extern MotorConfig MOTOR_CONF_CAPSTAN;
 
 float motor_get_position();
+void motor_test_calibration();
 float motor_get_pole_position();
 void motor_init_from_ident();
 void motor_init(MotorConfig* motor_config);

@@ -218,6 +218,14 @@ void motor_calibrate_encoder() {
     motor_energize_coils(0.0f, 0.0f, 0.0f);
 }
 
+void motor_test_calibration() {
+    while (true) {
+        motor_energize_coils(0.15f, 0.0f, 0.0f);
+        float pos = motor_get_pole_position();
+       uart_println_float(pos); 
+    }
+}
+
 uint8_t motor_get_identity() {
     return identity;
 }
