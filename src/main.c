@@ -174,8 +174,15 @@ int main(void) {
 
 	while (1) {
         if (gpio_get_pin(PIN_ENABLE)) {
-            //uart_println_float(spi_slave_get_torque_command());
-            delay(0x4FFF);
+            uint16_t bits = spi_slave_get_torque_command_uint();
+            if (bits != 0b11001100110000) {
+                //uart_println("");
+                //uart_print_int_base(bits, 2);
+                uart_put('*');
+            } else {
+                uart_put('.');
+            }
+            delay(0x2FF);
         }
 	}
 }

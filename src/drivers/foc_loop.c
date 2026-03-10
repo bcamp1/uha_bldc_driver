@@ -68,6 +68,7 @@ static void initialize_motor_module() {
     uart_put('\n');
     uart_put('\n');
     //motor_calibrate_encoder();
+    gate_driver_set_idrive(0b000, 0b000, 0b000, 0b000);
     //gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
     //motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
     //motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
@@ -111,7 +112,8 @@ static void foc_loop() {
     // Calculate speed
     speed = foc_loop_freq * sub_angles(curr_pos, prev_pos);
 
-    motor_set_torque(torque, pole_position);
+    //motor_set_torque(torque, pole_position);
+    motor_set_torque(0.4f, pole_position);
     //gpio_clear_pin(PIN_DEBUG1);
 }
 

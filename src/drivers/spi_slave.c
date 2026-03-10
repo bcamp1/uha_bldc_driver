@@ -114,8 +114,6 @@ static int16_t get_speed_int() {
 void SERCOM4_0_Handler() {
     //gpio_set_pin(PIN_DEBUG2);
     //gpio_clear_pin(PIN_DEBUG2);
-    //gpio_set_pin(PIN_DEBUG2);
-    //gpio_clear_pin(PIN_DEBUG2);
     //spi_slave_isr();
     //SPI_SLAVE->DATA.reg = 0x55;
     if (byte_index == 0) {
@@ -142,8 +140,8 @@ void SERCOM4_2_Handler() {
     //gpio_set_pin(PIN_DEBUG1);
     //gpio_clear_pin(PIN_DEBUG1);
     //spi_slave_isr();
-    //gpio_set_pin(PIN_DEBUG2);
-    //gpio_clear_pin(PIN_DEBUG2);
+    gpio_set_pin(PIN_DEBUG2);
+    gpio_clear_pin(PIN_DEBUG2);
     uint16_t data = SPI_SLAVE->DATA.reg;
     byte_index++;
     if (byte_index == 1) {
