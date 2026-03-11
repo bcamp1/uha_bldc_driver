@@ -10,7 +10,7 @@
 #include "../board.h"
 #include "samd51j20a.h"
 
-#define PWM_PRESCALER	(0x2)
+#define PWM_PRESCALER	(0x1)
 
 // Timer Settings
 #define TIMER_TOP		(0xFF)

@@ -94,7 +94,7 @@ static void encoder_test() {
     delay(0xFFF);
     uart_put('\n');
     uart_put('\n');
-    motor_init(&MOTOR_CONF_TAKEUP);
+    motor_init(&MOTOR_CONF_SUPPLY);
     motor_enable();
     timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
     while (true) {
@@ -152,9 +152,9 @@ int main(void) {
     gpio_clear_pin(PIN_DEBUG1);
     gpio_clear_pin(PIN_DEBUG2);
 
-    delay(0x3FFFF);
 
     //encoder_test();
+    //motor_init(&MOTOR_CONF_SUPPLY);
     
     do {
         motor_init_from_ident();
@@ -166,6 +166,7 @@ int main(void) {
     }
 
     motor_enable();
+    timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
     spi_slave_init();
     foc_loop_init();
     
@@ -175,13 +176,18 @@ int main(void) {
 	while (1) {
         if (gpio_get_pin(PIN_ENABLE)) {
             uint16_t bits = spi_slave_get_torque_command_uint();
-            if (bits != 0b11001100110000) {
+           
+            
+            if (bits != 0b1100110011000) {
                 //uart_println("");
                 //uart_print_int_base(bits, 2);
                 uart_put('*');
             } else {
                 uart_put('.');
             }
+          
+            
+            //uart_println_int_base(bits, 2);
             delay(0x2FF);
         }
 	}

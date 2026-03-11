@@ -103,7 +103,7 @@ static void deinitialize_motor_module() {
 }
 
 static void foc_loop() {
-    //gpio_set_pin(PIN_DEBUG1);
+    gpio_set_pin(PIN_DEBUG1);
     prev_pos = curr_pos;
     curr_pos = motor_get_position();
     float pole_position = motor_get_pole_pos_from_theta(curr_pos);
@@ -112,9 +112,9 @@ static void foc_loop() {
     // Calculate speed
     speed = foc_loop_freq * sub_angles(curr_pos, prev_pos);
 
-    //motor_set_torque(torque, pole_position);
-    motor_set_torque(0.4f, pole_position);
-    //gpio_clear_pin(PIN_DEBUG1);
+    motor_set_torque(torque, pole_position);
+    //motor_set_torque(0.7f, pole_position);
+    gpio_clear_pin(PIN_DEBUG1);
 }
 
 static float capstan_theta = 0.0f;
@@ -130,8 +130,15 @@ static void foc_loop_capstan() {
     motor_set_align(torque, capstan_theta);
 }
 
+//#define INSTA_ENABLE
+
 void foc_loop_init() {
     eic_init_pin(PIN_ENABLE, PIN_ENABLE_EIC_INDEX, EIC_MODE_BOTH, enable_callback);
+
+#ifdef INSTA_ENABLE
+    initialize_motor_module();
+    return;
+#endif
 
     if (gpio_get_pin(PIN_ENABLE)) {
         initialize_motor_module();
