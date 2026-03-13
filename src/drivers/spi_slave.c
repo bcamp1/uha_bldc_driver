@@ -12,6 +12,9 @@
 static volatile int16_t torque_command = 0;
 static volatile uint16_t torque_command_dirty = 0;
 static volatile uint16_t byte_index = 0;
+static volatile uint32_t hit_count = 0;
+static volatile uint32_t miss_count = 0;
+static volatile int32_t last_rx_status = -1;
 
 void spi_slave_init() {
 	/* Enable clocks */
@@ -80,6 +83,30 @@ uint16_t spi_slave_get_torque_command_uint() {
     return (uint16_t) torque_command;
 }
 
+uint32_t spi_slave_get_hit_count() {
+    return hit_count;
+}
+
+uint32_t spi_slave_get_miss_count() {
+    return miss_count;
+}
+
+// Returns -1 if last rx checksum was valid, or the raw 2-byte payload if it failed
+int32_t spi_slave_last_rx_status() {
+    return last_rx_status;
+}
+
+float spi_slave_get_success_rate() {
+    uint32_t total = hit_count + miss_count;
+    if (total == 0) return 0.0f;
+    if (total > 0xF0000000) {
+        hit_count >>= 4;
+        miss_count >>= 4;
+        total = hit_count + miss_count;
+    }
+    return ((float) hit_count) / ((float) total);
+}
+
 static void spi_slave_isr() {
     if (SPI_SLAVE->INTFLAG.bit.DRE) {
         SPI_SLAVE->DATA.reg = 0x55;
@@ -118,6 +145,8 @@ void SERCOM4_0_Handler() {
     //SPI_SLAVE->DATA.reg = 0x55;
     if (byte_index == 0) {
         SPI_SLAVE->DATA.reg = motor_speed_lsb;
+    } else if (byte_index == 1) {
+        SPI_SLAVE->DATA.reg = (motor_speed_lsb + motor_speed_msb + 0x55) & 0xFF;
     } else {
         SPI_SLAVE->DATA.reg = motor_speed_msb;
     }
@@ -131,6 +160,7 @@ void SERCOM4_1_Handler() {
     motor_speed_int = get_speed_int();
     motor_speed_msb = (((uint16_t)motor_speed_int) >> 8) & 0xFF;
     motor_speed_lsb = ((uint16_t)motor_speed_int) & 0xFF;
+    SPI_SLAVE->DATA.reg = motor_speed_msb;
     byte_index = 0;
     SPI_SLAVE->INTFLAG.bit.TXC = 1;
 }
@@ -148,7 +178,16 @@ void SERCOM4_2_Handler() {
         torque_command_dirty = (data << 8);
     } else if (byte_index == 2) {
         torque_command_dirty |= data;
-        torque_command = (int16_t) torque_command_dirty;
+    } else if (byte_index == 3) {
+        uint8_t expected = (((torque_command_dirty >> 8) & 0xFF) + (torque_command_dirty & 0xFF) + 0x55) & 0xFF;
+        if ((uint8_t) data == expected) {
+            torque_command = (int16_t) torque_command_dirty;
+            hit_count++;
+            last_rx_status = -1;
+        } else {
+            miss_count++;
+            last_rx_status = (int32_t) torque_command_dirty;
+        }
         byte_index = 0;
     }
 }
