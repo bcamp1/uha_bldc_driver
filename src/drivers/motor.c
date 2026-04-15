@@ -43,12 +43,17 @@ MotorConfig MOTOR_CONF_CAPSTAN = {
 
 static MotorConfig* config = NULL;
 
+// Gets hardware address set by dip switches
+static uint8_t get_address() {
+    uint8_t addr = 0;
+    addr |= (!gpio_get_pin(PIN_ADDR2) << 2);
+    addr |= (!gpio_get_pin(PIN_ADDR1) << 1);
+    addr |= (!gpio_get_pin(PIN_ADDR0) << 0);
+    return addr;
+}
+
 void motor_init_from_ident() {
-    gpio_init_pin(PIN_CONFIG1, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
-    gpio_init_pin(PIN_CONFIG2, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
-    uint8_t ident1 = (uint8_t) gpio_get_pin(PIN_CONFIG1);
-    uint8_t ident0 = (uint8_t) gpio_get_pin(PIN_CONFIG2);
-    identity = (ident1 << 1) | ident0; 
+    identity = get_address();
 
     switch (identity) {
         case MOTOR_IDENT_CAPSTAN:
@@ -67,9 +72,8 @@ void motor_init_from_ident() {
             uart_println("ERROR TRIED TO INIT WITH INVALID IDENTITY");
             break;
         default:
-            while (true) {
-                uart_println("ERROR INVALID IDENTITY");
-            }
+            identity = MOTOR_IDENT_UNKNOWN;
+            uart_println("ERROR INVALID IDENTITY");
     }
 }
 

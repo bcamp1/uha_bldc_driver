@@ -10,10 +10,10 @@
 #include <stdbool.h>
 #include "gate_driver.h"
 
-#define MOTOR_IDENT_UNKNOWN  (0b00)
-#define MOTOR_IDENT_SUPPLY   (0b10)
-#define MOTOR_IDENT_TAKEUP   (0b01)
-#define MOTOR_IDENT_CAPSTAN  (0b11)
+#define MOTOR_IDENT_TAKEUP   (0b100)
+#define MOTOR_IDENT_SUPPLY   (0b010)
+#define MOTOR_IDENT_CAPSTAN  (0b001)
+#define MOTOR_IDENT_UNKNOWN  (0b000)
 
 typedef struct {
 	uint16_t poles;

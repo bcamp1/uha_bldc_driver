@@ -8,6 +8,7 @@
 #include "gate_driver.h"
 #include "motor_pwm.h"
 #include "../periphs/gpio.h"
+#include "../periphs/uart.h"
 #include "../periphs/spi.h"
 #include "../foc/foc.h"
 #include "../periphs/delay.h"
@@ -53,7 +54,10 @@ void gate_driver_init() {
 void gate_driver_set_3x() {
     // Set to 3x PWM mode
     uint16_t pwm_mode = 0b01; // 3x PWM Mode
+    uint16_t control_reg_data = (pwm_mode << 5) | 0b1; // Add in clr_flt
+    uart_println_int_base(gate_driver_read_reg(DRV_REG_DRIVER_CONTROL), 2);
     gate_driver_write_reg(DRV_REG_DRIVER_CONTROL, pwm_mode << 5);
+    uart_println_int_base(gate_driver_read_reg(DRV_REG_DRIVER_CONTROL), 2);
 }
 
 void gate_driver_set_idrive(uint16_t hs_p, uint16_t hs_n, uint16_t ls_p, uint16_t ls_n) {
@@ -133,6 +137,7 @@ void gate_driver_enable() {
 	gpio_set_pin(PIN_GATE_ENABLE);
 	delay(0xFFF);
 	gate_driver_set_3x();
+	delay(0xFFF);
 
     // Change CSA amplitude
     gate_driver_write_reg(DRV_REG_CSA_CONTROL, 0b01011000011);
@@ -143,10 +148,5 @@ void gate_driver_disable() {
     gate_driver_set_high_z();
 	gpio_clear_pin(PIN_GATE_ENABLE);
     delay(0xFFF);
-}
-
-void gate_driver_toggle() {
-	gpio_toggle_pin(PIN_GATE_ENABLE);
-	gate_driver_set_3x();
 }
 

@@ -1,6 +1,5 @@
 #include "foc_loop.h"
 #include "motor.h"
-#include "spi_slave.h"
 #include "../periphs/eic.h"
 #include "../periphs/delay.h"
 #include "../periphs/spi_async.h"
@@ -51,16 +50,6 @@ static float sub_angles(float x, float y) {
     }
 }
 
-static void enable_callback() {
-    if (gpio_get_pin(PIN_ENABLE)) {
-        // Module has been enabled. Initialize everything and begin.    
-        initialize_motor_module();
-    } else {
-        // Module has been shut down. Uninitialize anything here.
-        deinitialize_motor_module();
-    }
-}
-
 static void initialize_motor_module() {
     //motor_init_from_ident();
     //motor_enable();
@@ -68,8 +57,8 @@ static void initialize_motor_module() {
     uart_put('\n');
     uart_put('\n');
     //motor_calibrate_encoder();
-    gate_driver_set_idrive(0b000, 0b000, 0b000, 0b000);
-    //gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
+    //gate_driver_set_idrive(0b000, 0b000, 0b000, 0b000);
+    gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
     //motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
     //motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
     //motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
@@ -107,10 +96,10 @@ static void foc_loop() {
     prev_pos = curr_pos;
     curr_pos = motor_get_position();
     float pole_position = motor_get_pole_pos_from_theta(curr_pos);
-    float torque = spi_slave_get_torque_command();
-    //torque = -0.57f;
+    float torque = 0.2f;
+
     // Calculate speed
-    speed = foc_loop_freq * sub_angles(curr_pos, prev_pos);
+    //speed = foc_loop_freq * sub_angles(curr_pos, prev_pos);
 
     motor_set_torque(torque, pole_position);
     //motor_set_torque(0.7f, pole_position);
@@ -133,16 +122,7 @@ static void foc_loop_capstan() {
 //#define INSTA_ENABLE
 
 void foc_loop_init() {
-    eic_init_pin(PIN_ENABLE, PIN_ENABLE_EIC_INDEX, EIC_MODE_BOTH, enable_callback);
-
-#ifdef INSTA_ENABLE
     initialize_motor_module();
-    return;
-#endif
-
-    if (gpio_get_pin(PIN_ENABLE)) {
-        initialize_motor_module();
-    }
 }
 
 float foc_loop_get_speed() {

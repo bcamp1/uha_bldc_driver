@@ -24,7 +24,6 @@ void gate_driver_set_high_z();
 void gate_driver_goto_theta(float theta);
 void gate_driver_enable();
 void gate_driver_disable();
-void gate_driver_toggle();
 void gate_driver_set_3x();
 uint16_t gate_driver_read_reg(uint8_t address);
 void gate_driver_set_idrive(uint16_t hs_p, uint16_t hs_n, uint16_t ls_p, uint16_t ls_n);

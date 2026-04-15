@@ -15,19 +15,19 @@
 #include <math.h>
 #include "../periphs/delay.h"
 
-#define UART_TX_PIN		PIN_PA04
-#define UART_RX_PIN		PIN_PA05
+#define UART_TX_PIN		PIN_PB12
+#define UART_RX_PIN		PIN_PB13
 #define UART_TX_PAD		(0)
 #define UART_RX_PAD		(1)
-#define UART_SERCOM		SERCOM0
+#define UART_SERCOM		SERCOM4
 #define UART_BAUD_9600	(0xD8A0)
 
 static char read_character = 0;
 
 void uart_init(void) {
 	// Init ports
-	gpio_init_pin(UART_TX_PIN, GPIO_DIR_OUT, GPIO_ALTERNATE_D_SERCOM_ALT);
-	gpio_init_pin(UART_RX_PIN, GPIO_DIR_IN, GPIO_ALTERNATE_D_SERCOM_ALT);
+	gpio_init_pin(UART_TX_PIN, GPIO_DIR_OUT, GPIO_ALTERNATE_C_SERCOM);
+	gpio_init_pin(UART_RX_PIN, GPIO_DIR_IN, GPIO_ALTERNATE_C_SERCOM);
 	
 	// Init clock
 	wntr_sercom_init_clock(UART_SERCOM, GCLK_PCHCTRL_GEN_GCLK4);

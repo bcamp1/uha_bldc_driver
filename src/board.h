@@ -4,9 +4,6 @@
 #define PIN_DEBUG1 PIN_PA14
 #define PIN_DEBUG2 PIN_PB15
 
-#define PIN_TX PIN_PA04 
-#define PIN_RX PIN_PA05 
-
 #define PIN_MOSI PIN_PA17
 #define PIN_MISO PIN_PA18
 #define PIN_SCK PIN_PA16
@@ -56,6 +53,10 @@
 #define PIN_SLAVE_SCK   PIN_PB13 // SERCOM4[1] C
 #define PIN_ENABLE      PIN_PA15
 #define PIN_ENABLE_EIC_INDEX 15 
+
+#define PIN_ADDR2 PIN_PA08
+#define PIN_ADDR1 PIN_PA09
+#define PIN_ADDR0 PIN_PA10
 
 // SPI Slave Settings
 #define SPI_SLAVE_DIPO      (0x3) // PAD3 = Data in
