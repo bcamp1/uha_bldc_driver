@@ -22,8 +22,6 @@
 #define UART_SERCOM		SERCOM4
 #define UART_BAUD_9600	(0xD8A0)
 
-static char read_character = 0;
-
 void uart_init(void) {
 	// Init ports
 	gpio_init_pin(UART_TX_PIN, GPIO_DIR_OUT, GPIO_ALTERNATE_C_SERCOM);
@@ -160,11 +158,6 @@ void uart_print_int(int num) {
 
 void uart_println_int(int num) {
 	uart_println_int_base(num, 10);
-}
-
-void SERCOM0_2_Handler(void) {
-	char data = UART_SERCOM->USART.DATA.reg & 0xff;
-	read_character = data;
 }
 
 void uart_send_float(float num) {

@@ -28,6 +28,8 @@ static float curr_pos = 0.0f;
 static float prev_pos = 0.0f;
 static float speed = 0.0f;
 
+static float torque_command = 0.0f;
+
 static float sub_angles(float x, float y) {
     float a = x - y;
     float b = (x + TWOPI) - y;
@@ -96,7 +98,7 @@ static void foc_loop() {
     prev_pos = curr_pos;
     curr_pos = motor_get_position();
     float pole_position = motor_get_pole_pos_from_theta(curr_pos);
-    float torque = 0.3f;
+    float torque = torque_command;
 
     // Calculate speed
     //speed = foc_loop_freq * sub_angles(curr_pos, prev_pos);
@@ -127,5 +129,9 @@ void foc_loop_init() {
 
 float foc_loop_get_speed() {
     return speed;
+}
+
+void foc_loop_set_torque(float torque) {
+    torque_command = torque;
 }
 

@@ -10,6 +10,7 @@
 #include "periphs/gpio.h"
 #include "periphs/clocks.h"
 #include "periphs/uart.h"
+#include "periphs/rs485.h"
 #include "drivers/motor.h"
 #include "periphs/stopwatch.h"
 #include "board.h"
@@ -157,6 +158,9 @@ int main(void) {
 
     //encoder_test();
     //motor_init(&MOTOR_CONF_SUPPLY);
+    //
+
+    rs485_init();
     
 
     uart_println("Waiting before enabling motor...");
@@ -183,10 +187,18 @@ int main(void) {
     //motor_calibrate_encoder();
     //motor_test_calibration();
 
+    foc_loop_set_torque(-0.3f);
+
 	while (1) {
+        if (rs485_available()) {
+            uint8_t byte = rs485_get();
+            float byte_percent = byte / 256.0f;
+            uart_println_float(byte_percent);
+            foc_loop_set_torque((byte_percent * 0.6f));
+        }
         gpio_toggle_pin(PIN_DEBUG1);
         gpio_toggle_pin(PIN_DEBUG2);
-        delay(0xFFFF);
+        //delay(0xFFFF);
         /*
         uart_print_int(spi_slave_get_hit_count());
         uart_print(" : ");
