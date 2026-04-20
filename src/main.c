@@ -135,6 +135,16 @@ void current_printer() {
     __set_PRIMASK(primask);
 }
 
+int min() {
+    init_peripherals();
+    delay(0xFFF);
+
+    while (true) {
+        gpio_toggle_pin(PIN_DEBUG1);
+        delay(0xFFFF);
+    }
+}
+
 int main(void) {
     init_peripherals();
     delay(0xFFF);
@@ -180,6 +190,8 @@ int main(void) {
 
     timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
 
+    motor_calibrate_encoder();
+
     //spi_slave_init();
     foc_loop_init();
     uart_println("FOC Loop enabled.");
@@ -189,15 +201,29 @@ int main(void) {
 
     foc_loop_set_torque(-0.3f);
 
+
 	while (1) {
+        /*
         if (rs485_available()) {
             uint8_t byte = rs485_get();
             float byte_percent = byte / 256.0f;
             uart_println_float(byte_percent);
             foc_loop_set_torque((byte_percent * 0.6f));
         }
-        gpio_toggle_pin(PIN_DEBUG1);
-        gpio_toggle_pin(PIN_DEBUG2);
+        */
+
+        foc_loop_set_torque(0.4f);
+        
+        /*
+        uint16_t fault = gate_driver_read_reg(DRV_REG_FAULT_STATUS_1);
+
+        if (fault != 0)
+            uart_println_int_base(fault, 2);
+        delay(0xFFFFF);
+        */
+
+        //gpio_toggle_pin(PIN_DEBUG1);
+        //gpio_toggle_pin(PIN_DEBUG2);
         //delay(0xFFFF);
         /*
         uart_print_int(spi_slave_get_hit_count());

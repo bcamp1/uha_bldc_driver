@@ -56,7 +56,7 @@ void gate_driver_set_3x() {
     uint16_t pwm_mode = 0b01; // 3x PWM Mode
     uint16_t control_reg_data = (pwm_mode << 5) | 0b1; // Add in clr_flt
     uart_println_int_base(gate_driver_read_reg(DRV_REG_DRIVER_CONTROL), 2);
-    gate_driver_write_reg(DRV_REG_DRIVER_CONTROL, pwm_mode << 5);
+    gate_driver_write_reg(DRV_REG_DRIVER_CONTROL, control_reg_data);
     uart_println_int_base(gate_driver_read_reg(DRV_REG_DRIVER_CONTROL), 2);
 }
 
