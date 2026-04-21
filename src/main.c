@@ -21,6 +21,7 @@
 #include "periphs/spi.h"
 #include "periphs/spi_async.h"
 #include "periphs/eic.h"
+#include "drivers/motor_comms_slave.h"
 
 #define FIRMWARE_VERSION "UHA BLDC FIRMWARE v0.1"
 #define FIRMWARE_AUTHOR "AUTHOR: BRANSON CAMP"
@@ -30,6 +31,9 @@ static void enable_fpu(void);
 static void init_peripherals(void);
 static void stopwatch_test();
 static void encoder_spi_callback();
+static uint8_t get_address();
+
+static uint8_t self_address = 0;
 
 static void init_peripherals(void) {
 	// Init clock to use 32K OSC in closed-loop 48MHz mode
@@ -51,6 +55,21 @@ static void init_peripherals(void) {
 
     // EIC
     //eic_init();
+    
+    // Set hardware address
+    gpio_init_pin(PIN_ADDR2, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
+    gpio_init_pin(PIN_ADDR1, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
+    gpio_init_pin(PIN_ADDR0, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
+    self_address = get_address();
+}
+
+// Gets hardware address set by dip switches
+static uint8_t get_address() {
+    uint8_t addr = 0;
+    addr |= (!gpio_get_pin(PIN_ADDR2) << 2);
+    addr |= (!gpio_get_pin(PIN_ADDR1) << 1);
+    addr |= (!gpio_get_pin(PIN_ADDR0) << 0);
+    return addr;
 }
 
 static void enable_fpu(void) {
@@ -135,17 +154,49 @@ void current_printer() {
     __set_PRIMASK(primask);
 }
 
-int min() {
+int main() {
     init_peripherals();
     delay(0xFFF);
 
+    // Print firmware info
+    uart_println("\n");
+    uart_println("--------------------");
+    uart_println(FIRMWARE_VERSION);
+    uart_println(FIRMWARE_AUTHOR);
+    uart_println(FIRMWARE_DATE);
+    uart_println("--------------------");
+    gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
+    gpio_init_pin(PIN_DEBUG2, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
+
+
+    gpio_clear_pin(PIN_DEBUG1);
+    gpio_clear_pin(PIN_DEBUG2);
+
+    rs485_init();
+    uart_println("RS485 TEST MODE");
+    uart_print("SLAVE ADDRESS: ");
+    uart_println_int(self_address);
+    motor_comms_init(self_address);
+
+    uint16_t buf_length = 20;
+    uint8_t buf[buf_length];
+    uint8_t data_len = 0;
+
     while (true) {
-        gpio_toggle_pin(PIN_DEBUG1);
+        RXError err = motor_comms_get_data(buf, &data_len, buf_length);
+        motor_comms_println_error(err);
+
+
+        if (err == RX_ERR_OK) {
+            uart_println_int_base(buf[0], 10); 
+        }
+        
         delay(0xFFFF);
+        gpio_toggle_pin(PIN_DEBUG1);
     }
 }
 
-int main(void) {
+int min(void) {
     init_peripherals();
     delay(0xFFF);
 

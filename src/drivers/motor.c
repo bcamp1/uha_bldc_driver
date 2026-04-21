@@ -43,14 +43,6 @@ MotorConfig MOTOR_CONF_CAPSTAN = {
 
 static MotorConfig* config = NULL;
 
-// Gets hardware address set by dip switches
-static uint8_t get_address() {
-    uint8_t addr = 0;
-    addr |= (!gpio_get_pin(PIN_ADDR2) << 2);
-    addr |= (!gpio_get_pin(PIN_ADDR1) << 1);
-    addr |= (!gpio_get_pin(PIN_ADDR0) << 0);
-    return addr;
-}
 
 void motor_init_from_ident() {
     identity = get_address();

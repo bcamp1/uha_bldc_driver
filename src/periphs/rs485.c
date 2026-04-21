@@ -98,75 +98,6 @@ void rs485_println(char* str) {
 }
 
 
-#define MAX_FLOAT_STR_LEN 32
-#define FLOAT_PRECISION (4)
-
-void rs485_print_float(float num) {
-	if (num < 0) {
-		rs485_put('-');
-		num = -num;
-	} else {
-        rs485_put('+');
-    }
-	static char buffer[MAX_FLOAT_STR_LEN];
-	int integer_part = (int)num;
-	float fractional_part = num - integer_part;
-
-	int i = 0;
-	if (integer_part == 0) {
-		buffer[i++] = '0';
-		} else {
-		char int_buffer[10];
-		int idx = 0;
-		while (integer_part > 0) {
-			int_buffer[idx++] = (integer_part % 10) + '0';
-			integer_part /= 10;
-		}
-
-		for (int j = idx - 1; j >= 0; j--) {
-			buffer[i++] = int_buffer[j];
-		}
-	}
-
-	buffer[i++] = '.';
-
-	int frac_digits = FLOAT_PRECISION;
-	while (frac_digits-- > 0) {
-		fractional_part *= 10;
-		int digit = (int)fractional_part;
-		buffer[i++] = digit + '0';
-		fractional_part -= digit;
-	}
-
-	buffer[i] = '\0';
-	rs485_print(buffer);
-}
-
-void rs485_println_float(float num) {
-	rs485_print_float(num);
-	rs485_put('\n');
-}
-
-#define MAX_INT_STR_LEN 50
-void rs485_print_int_base(int num, int base) {
-	static char buffer[MAX_INT_STR_LEN];
-	itoa(num, buffer, base);
-	rs485_print(buffer);
-}
-
-void rs485_println_int_base(int num, int base) {
-	rs485_print_int_base(num, base);
-	rs485_put('\n');
-}
-
-void rs485_print_int(int num) {
-	rs485_print_int_base(num, 10);
-}
-
-void rs485_println_int(int num) {
-	rs485_println_int_base(num, 10);
-}
-
 // RXC interrupt: push received byte into ring buffer.
 // On overflow, drop the oldest byte to make room for the newest.
 void SERCOM0_2_Handler(void) {
@@ -203,16 +134,3 @@ void rs485_send_float_arr(float* data, int len) {
     delay(0x3FF);
 }
 
-void rs485_print_float_arr(float* data, int len) {
-    for (int i = 0; i < len; i++) {
-        rs485_print_float(data[i]);
-        if (i < len-1) {
-            rs485_put(',');
-        }
-    }
-}
-
-void rs485_println_float_arr(float* data, int len) {
-    rs485_print_float_arr(data, len);
-    rs485_put('\n');
-}
