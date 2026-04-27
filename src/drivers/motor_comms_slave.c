@@ -17,24 +17,27 @@ void motor_comms_init(uint8_t self_addr) {
     rs485_init();
 }
 
-void motor_comms_send_bytes(uint8_t addr, const uint8_t *data, uint8_t length) {
-    uint8_t checksum = addr + length;  // seed with addr + length
+// Outgoing data structure:
+// [SOF][SELF_ADDR][CARGO_LENGTH][CHECKSUM][CARGO]
+// Checksum is seeded with slave_addr+cargo_length
+void motor_comms_send_data(const uint8_t *data, uint8_t length) {
+    uint8_t checksum = self_address + length;  // seed with addr + length
     for (uint16_t i = 0; i < length; i++)
         checksum += data[i];
 
     uint8_t frame[4 + 255];
     frame[0] = SOF_BYTE;
-    frame[1] = addr;
+    frame[1] = self_address;
     frame[2] = length;
-    memcpy(&frame[3], data, length);
-    frame[3 + length] = checksum;
+    frame[3] = checksum;
+    memcpy(&frame[4], data, length);
 
     rs485_send_bytes(frame, 4 + length);
 }
 
 
-void motor_comms_send_cmd(uint8_t addr, uint8_t cmd) {
-    motor_comms_send_bytes(addr, &cmd, 1);
+void motor_comms_send_byte(uint8_t byte) {
+    motor_comms_send_data(&byte, 1);
 }
 
 void motor_comms_send_float(uint8_t addr, const uint8_t command, float data) {

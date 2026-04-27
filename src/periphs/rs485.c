@@ -9,10 +9,7 @@
 #include "gpio.h"
 #include "samd51j20a.h"
 #include "sercom.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include <stdint.h>
 #include "../periphs/delay.h"
 
 #define RS485_TX_PIN	PIN_PA04
@@ -21,6 +18,8 @@
 #define RS485_RX_PAD	(1)
 #define RS485_SERCOM	SERCOM0
 #define RS485_BAUD	(0x9000)
+
+#define RS485_TXEN_PIN PIN_PA07
 
 #define RS485_RX_BUF_SIZE 128  // Must be a power of two
 #define RS485_RX_BUF_MASK (RS485_RX_BUF_SIZE - 1)
@@ -33,6 +32,8 @@ void rs485_init(void) {
 	// Init ports (PA04/PA05 use peripheral function D for SERCOM0)
 	gpio_init_pin(RS485_TX_PIN, GPIO_DIR_OUT, GPIO_ALTERNATE_D_SERCOM_ALT);
 	gpio_init_pin(RS485_RX_PIN, GPIO_DIR_IN,  GPIO_ALTERNATE_D_SERCOM_ALT);
+    gpio_init_pin(RS485_TXEN_PIN, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
+    gpio_clear_pin(RS485_TXEN_PIN);  // Start in receive mode
 
 	// Init clock
 	wntr_sercom_init_clock(RS485_SERCOM, GCLK_PCHCTRL_GEN_GCLK4);
@@ -58,13 +59,31 @@ void rs485_init(void) {
 	while (RS485_SERCOM->USART.SYNCBUSY.bit.ENABLE) {}
 }
 
-void rs485_put(char ch) {
+void rs485_begin_transaction(void) {
+	gpio_set_pin(RS485_TXEN_PIN);
+	// Clear TXC so end_transaction waits for this transaction's own completion
+	RS485_SERCOM->USART.INTFLAG.bit.TXC = 1;
+}
+
+void rs485_end_transaction(void) {
+	// Wait for the last byte (including stop bit) to fully shift out
+	while (!RS485_SERCOM->USART.INTFLAG.bit.TXC) {}
+	gpio_clear_pin(RS485_TXEN_PIN);
+}
+
+// Low-level byte write. Caller must be inside a begin/end transaction.
+void rs485_put(uint8_t byte) {
 	delay(0x1F);
-	RS485_SERCOM->USART.DATA.reg = ch;
+	RS485_SERCOM->USART.DATA.reg = byte;
 	while (!RS485_SERCOM->USART.INTFLAG.bit.DRE) {}
-	if (ch == '\n') {
-		rs485_put('\r');
+}
+
+void rs485_send_bytes(const uint8_t* data, uint16_t len) {
+	rs485_begin_transaction();
+	for (uint16_t i = 0; i < len; i++) {
+		rs485_put(data[i]);
 	}
+	rs485_end_transaction();
 }
 
 int rs485_available(void) {
@@ -84,20 +103,6 @@ void rs485_rx_flush(void) {
 	rx_tail = rx_head;
 }
 
-void rs485_print(char* str) {
-	char* ch = str;
-	while (*ch != '\0') {
-		rs485_put(*ch);
-		ch++;
-	}
-}
-
-void rs485_println(char* str) {
-	rs485_print(str);
-	rs485_put('\n');
-}
-
-
 // RXC interrupt: push received byte into ring buffer.
 // On overflow, drop the oldest byte to make room for the newest.
 void SERCOM0_2_Handler(void) {
@@ -111,26 +116,3 @@ void SERCOM0_2_Handler(void) {
 		rx_head = next;
 	}
 }
-
-void rs485_send_float(float num) {
-	uint32_t raw = 0;
-	memcpy(&raw, &num, 4);
-	char byte0 = (raw >> 0)  & 0xFF;
-    char byte1 = (raw >> 8)  & 0xFF;
-    char byte2 = (raw >> 16) & 0xFF;
-    char byte3 = (raw >> 24) & 0xFF;
-	rs485_put(byte3);
-	rs485_put(byte2);
-	rs485_put(byte1);
-	rs485_put(byte0);
-}
-
-void rs485_send_float_arr(float* data, int len) {
-    for (int i = 0; i < len; i++) {
-        rs485_send_float(data[i]);
-        delay(0x3FF);
-    }
-    rs485_send_float(INFINITY);
-    delay(0x3FF);
-}
-

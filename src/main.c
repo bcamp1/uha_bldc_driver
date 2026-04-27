@@ -184,15 +184,22 @@ int main() {
 
     while (true) {
         RXError err = motor_comms_get_data(buf, &data_len, buf_length);
-        motor_comms_println_error(err);
+        //motor_comms_println_error(err);
 
 
         if (err == RX_ERR_OK) {
-            uart_println_int_base(buf[0], 10); 
+            //uart_println_int_base(buf[0], 10); 
+            gpio_set_pin(PIN_DEBUG1);
+            delay(0xFF);
+            gpio_clear_pin(PIN_DEBUG1);
+
+            if (buf[0] == 0x1) {
+                motor_comms_send_byte(0x33);
+            }
         }
         
-        delay(0xFFFF);
-        gpio_toggle_pin(PIN_DEBUG1);
+        //delay(0xFFFF);
+        //gpio_toggle_pin(PIN_DEBUG1);
     }
 }
 

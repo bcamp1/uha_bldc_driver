@@ -14,8 +14,8 @@ typedef enum {
 void motor_comms_print_error(RXError err);
 void motor_comms_println_error(RXError err);
 void motor_comms_init(uint8_t self_addr);
-void motor_comms_send_bytes(uint8_t addr, const uint8_t *data, uint8_t length);
-void motor_comms_send_cmd(uint8_t addr, uint8_t cmd);
+void motor_comms_send_data(const uint8_t *data, uint8_t length);
+void motor_comms_send_byte(uint8_t byte);
 void motor_comms_send_float(uint8_t addr, const uint8_t command, float data);
 float motor_comms_data_to_float(uint8_t* data);
 
