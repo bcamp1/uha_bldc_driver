@@ -1,29 +1,136 @@
 #include "motor_comms_slave.h"
 #include "../periphs/rs485.h"
+#include "../periphs/uart.h"
+#include "samd51j20a.h"
 #include <string.h>
 #include <stdint.h>
-#include "../periphs/uart.h"
+#include <stdbool.h>
 
-// Incoming data structure:
-// [SOF][SLAVE_ADDR][CARGO_LENGTH][CHECKSUM][CARGO]
-// Checksum is seeded with slave_addr+cargo_length
+// Wire format: [SOF][addr][length][checksum][data...]
+// Checksum is seeded with addr+length and covers the data bytes.
 
 #define SOF_BYTE 0xAA
 
+typedef enum {
+    ST_SOF,
+    ST_ADDR,
+    ST_LEN,
+    ST_CKSUM,
+    ST_DATA,
+} RxState;
+
 static uint8_t self_address = 0;
+
+static volatile RxState state = ST_SOF;
+static volatile uint8_t expected_len = 0;
+static volatile uint8_t given_checksum = 0;
+static volatile uint8_t calc_checksum = 0;
+static volatile uint8_t data_idx = 0;
+static volatile uint8_t scratch[MOTOR_COMMS_MAX_DATA];
+
+static volatile MotorCommsRxResult latched;
+static volatile bool result_ready = false;
+
+static volatile uint32_t checksum_success = 0;
+static volatile uint32_t checksum_fail = 0;
+
+// When either counter crosses this threshold, halve both. Preserves the ratio
+// while keeping comfortably below UINT32_MAX so we can never overflow.
+#define CHECKSUM_RESCALE_THRESHOLD (1u << 30)
+
+static void discard(void) {
+    state = ST_SOF;
+}
+
+static void latch_success(void) {
+    latched.err = RX_ERR_OK;
+    latched.data_len = expected_len;
+    for (uint8_t i = 0; i < expected_len; i++) {
+        latched.data[i] = scratch[i];
+    }
+    result_ready = true;
+    state = ST_SOF;
+}
+
+static void finalize_checksum(void) {
+    if (given_checksum == calc_checksum) {
+        checksum_success++;
+        latch_success();
+    } else {
+        checksum_fail++;
+        discard();
+    }
+
+    if (checksum_success > CHECKSUM_RESCALE_THRESHOLD ||
+        checksum_fail    > CHECKSUM_RESCALE_THRESHOLD) {
+        checksum_success >>= 1;
+        checksum_fail    >>= 1;
+    }
+}
+
+static void feed(uint8_t byte) {
+    switch (state) {
+        case ST_SOF:
+            if (byte == SOF_BYTE) {
+                state = ST_ADDR;
+            }
+            break;
+        case ST_ADDR:
+            if (byte != self_address) {
+                discard();
+                return;
+            }
+            calc_checksum = self_address;
+            state = ST_LEN;
+            break;
+        case ST_LEN:
+            if (byte > MOTOR_COMMS_MAX_DATA) {
+                discard();
+                return;
+            }
+            expected_len = byte;
+            calc_checksum += byte;
+            data_idx = 0;
+            state = ST_CKSUM;
+            break;
+        case ST_CKSUM:
+            given_checksum = byte;
+            if (expected_len == 0) {
+                finalize_checksum();
+            } else {
+                state = ST_DATA;
+            }
+            break;
+        case ST_DATA:
+            scratch[data_idx++] = byte;
+            calc_checksum += byte;
+            if (data_idx == expected_len) {
+                finalize_checksum();
+            }
+            break;
+    }
+}
+
+static void on_rx_ready(void) {
+    int ch;
+    while ((ch = rs485_get()) != -1) {
+        feed((uint8_t)ch);
+    }
+}
 
 void motor_comms_init(uint8_t self_addr) {
     self_address = self_addr;
-    rs485_init(0);
+    state = ST_SOF;
+    result_ready = false;
+    rs485_init(on_rx_ready);
 }
 
-// Outgoing data structure:
-// [SOF][SELF_ADDR][CARGO_LENGTH][CHECKSUM][CARGO]
-// Checksum is seeded with slave_addr+cargo_length
+// Outgoing frame: [SOF][self_addr][length][checksum][data...]
 void motor_comms_send_data(const uint8_t *data, uint8_t length) {
-    uint8_t checksum = self_address + length;  // seed with addr + length
-    for (uint16_t i = 0; i < length; i++)
+    uint8_t checksum = self_address + length;
+    for (uint16_t i = 0; i < length; i++) {
         checksum += data[i];
+    }
 
     uint8_t frame[4 + 255];
     frame[0] = SOF_BYTE;
@@ -35,80 +142,45 @@ void motor_comms_send_data(const uint8_t *data, uint8_t length) {
     rs485_send_bytes(frame, 4 + length);
 }
 
-
 void motor_comms_send_byte(uint8_t byte) {
     motor_comms_send_data(&byte, 1);
 }
 
 void motor_comms_send_float(uint8_t addr, const uint8_t command, float data) {
+    (void)addr;
     uint8_t buf[5];
     buf[0] = command;
     memcpy(&buf[1], &data, 4);
-    motor_comms_send_bytes(addr, buf, 5);
+    motor_comms_send_data(buf, 5);
 }
 
-static bool get_byte_with_timeout(uint8_t* byte, uint32_t timeout) {
-    for (uint32_t i = 0; i < timeout; i++) {
-        int16_t ch = rs485_get();
-        if (ch != -1) {
-            *byte = (uint8_t)ch;
-            return true;
-        }
+MotorCommsRxResult motor_comms_get_data(void) {
+    if (!result_ready) {
+        MotorCommsRxResult empty = { .err = RX_ERR_NO_DATA, .data_len = 0 };
+        return empty;
     }
-    return false;
+
+    NVIC_DisableIRQ(SERCOM0_2_IRQn);
+    MotorCommsRxResult out;
+    out.err = latched.err;
+    out.data_len = latched.data_len;
+    for (uint8_t i = 0; i < latched.data_len; i++) {
+        out.data[i] = latched.data[i];
+    }
+    result_ready = false;
+    NVIC_EnableIRQ(SERCOM0_2_IRQn);
+    return out;
 }
 
-// Incoming data structure:
-// [SOF][SLAVE_ADDR][CARGO_LENGTH][CHECKSUM][CARGO]
-// Checksum is seeded with slave_addr+cargo_length
-RXError motor_comms_get_data(uint8_t* data, uint8_t* data_len, uint8_t buf_size) {
-    int16_t ch;
+float motor_comms_checksum_success_rate(void) {
+    NVIC_DisableIRQ(SERCOM0_2_IRQn);
+    uint32_t s = checksum_success;
+    uint32_t f = checksum_fail;
+    NVIC_EnableIRQ(SERCOM0_2_IRQn);
 
-    do {
-        ch = rs485_get();
-    } while (!(ch == -1 || ch == SOF_BYTE));
-
-    if (ch == -1) {
-        return RX_ERR_NO_DATA;
-    }
-
-    // get addr
-    uint8_t addr = 0;
-    if (!get_byte_with_timeout(&addr, 0xFFF)) {
-       return RX_ERR_TIMEOUT;
-    }
-    if (addr != self_address) return RX_ERR_WRONG_ADDR;
-
-    // get length
-    uint8_t length = 0;
-    if (!get_byte_with_timeout(&length, 0xFFF)) {
-       return RX_ERR_TIMEOUT;
-    }
-    if (length > buf_size) return RX_ERR_BUF_OVF;
-
-    // get checksum
-    uint8_t given_checksum = 0;
-    if (!get_byte_with_timeout(&given_checksum, 0xFFF)) {
-       return RX_ERR_TIMEOUT;
-    }
-
-    // get data
-    uint8_t data_byte = 0;
-    uint8_t checksum = addr + length;
-    for (uint32_t i = 0; i < length; i++) {
-        if (!get_byte_with_timeout(&data_byte, 0xFFF)) {
-           return RX_ERR_TIMEOUT;
-        }
-
-        data[i] = data_byte;
-        checksum += data_byte;
-    }
-
-    // Verify checksum
-    if (given_checksum != checksum) return RX_ERR_WRONG_CHECKSUM;
-
-    *data_len = length;
-    return RX_ERR_OK;
+    uint32_t total = s + f;
+    if (total == 0) return 1.0f;
+    return (float)s / (float)total;
 }
 
 float motor_comms_data_to_float(uint8_t* data) {
@@ -122,18 +194,6 @@ void motor_comms_print_error(RXError err) {
         case RX_ERR_OK:
             uart_print("RX_ERR_OK");
             break;
-        case RX_ERR_TIMEOUT:
-            uart_print("RX_ERR_TIMEOUT");
-            break;
-        case RX_ERR_WRONG_ADDR:
-            uart_print("RX_ERR_WRONG_ADDR");
-            break;
-        case RX_ERR_BUF_OVF:
-            uart_print("RX_ERR_BUF_OVF");
-            break;
-        case RX_ERR_WRONG_CHECKSUM:
-            uart_print("RX_ERR_WRONG_CHECKSUM");
-            break;
         case RX_ERR_NO_DATA:
             uart_print("RX_ERR_NO_DATA");
             break;
@@ -144,4 +204,3 @@ void motor_comms_println_error(RXError err) {
     motor_comms_print_error(err);
     uart_println("");
 }
-

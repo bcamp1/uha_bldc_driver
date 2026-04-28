@@ -18,7 +18,7 @@
 #define RS485_TX_PAD	(0)
 #define RS485_RX_PAD	(1)
 #define RS485_SERCOM	SERCOM0
-#define RS485_BAUD	(0x9000)
+#define RS485_SERCOM_REF_HZ	12000000.0f  // GCLK4
 
 #define RS485_TXEN_PIN PIN_PA07
 
@@ -32,6 +32,7 @@ static volatile uint16_t rx_tail = 0;  // Read by consumer
 static void (*rx_ready_cb)(void) = 0;
 
 void rs485_init(void (*rx_ready)(void)) {
+	const float baud_hz = 500000.0f;
 	rx_ready_cb = rx_ready;
 
 	// Init ports (PA04/PA05 use peripheral function D for SERCOM0)
@@ -48,7 +49,9 @@ void rs485_init(void (*rx_ready)(void)) {
 	RS485_SERCOM->USART.CTRLA.bit.RXPO = 0x1; // RX on PAD1
 	RS485_SERCOM->USART.CTRLA.bit.DORD = 1; // LSB first
 
-	RS485_SERCOM->USART.BAUD.reg = RS485_BAUD;
+	// Asynchronous arithmetic baud generation, 16x oversampling:
+	//   BAUD = 65536 * (1 - 16 * baud_hz / fref)
+	RS485_SERCOM->USART.BAUD.reg = (uint16_t)(65536.0f * (1.0f - 16.0f * baud_hz / RS485_SERCOM_REF_HZ));
 
 	RS485_SERCOM->USART.CTRLB.bit.CHSIZE = 0;
 	RS485_SERCOM->USART.CTRLB.bit.TXEN = 1;
@@ -66,19 +69,18 @@ void rs485_init(void (*rx_ready)(void)) {
 
 void rs485_begin_transaction(void) {
 	gpio_set_pin(RS485_TXEN_PIN);
-	// Clear TXC so end_transaction waits for this transaction's own completion
-	RS485_SERCOM->USART.INTFLAG.bit.TXC = 1;
+	delay(1); // Settle before transmitting (TXEN spec is 55ns)
 }
 
 void rs485_end_transaction(void) {
 	// Wait for the last byte (including stop bit) to fully shift out
 	while (!RS485_SERCOM->USART.INTFLAG.bit.TXC) {}
+	delay(1); // Settle before releasing bus
 	gpio_clear_pin(RS485_TXEN_PIN);
 }
 
 // Low-level byte write. Caller must be inside a begin/end transaction.
 void rs485_put(uint8_t byte) {
-	delay(0x1F);
 	RS485_SERCOM->USART.DATA.reg = byte;
 	while (!RS485_SERCOM->USART.INTFLAG.bit.DRE) {}
 }
@@ -96,11 +98,17 @@ int rs485_available(void) {
 }
 
 int rs485_get(void) {
+	// Mask IRQs around tail update: the ISR can also mutate rx_tail on overflow,
+	// so a preemption between the read and the write would let the consumer
+	// clobber the ISR's tail bumps and lose extra bytes.
+	__disable_irq();
 	if (rx_head == rx_tail) {
+		__enable_irq();
 		return -1;
 	}
 	uint8_t ch = rx_buf[rx_tail];
 	rx_tail = (rx_tail + 1) & RS485_RX_BUF_MASK;
+	__enable_irq();
 	return (int)ch;
 }
 

@@ -172,34 +172,20 @@ int main() {
     gpio_clear_pin(PIN_DEBUG1);
     gpio_clear_pin(PIN_DEBUG2);
 
-    rs485_init(0);
     uart_println("RS485 TEST MODE");
     uart_print("SLAVE ADDRESS: ");
     uart_println_int(self_address);
     motor_comms_init(self_address);
 
-    uint16_t buf_length = 20;
-    uint8_t buf[buf_length];
-    uint8_t data_len = 0;
-
     while (true) {
-        RXError err = motor_comms_get_data(buf, &data_len, buf_length);
-        //motor_comms_println_error(err);
+        MotorCommsRxResult rx = motor_comms_get_data();
 
-
-        if (err == RX_ERR_OK) {
-            //uart_println_int_base(buf[0], 10); 
+        if (rx.err == RX_ERR_OK) {
             gpio_set_pin(PIN_DEBUG1);
             delay(0xFF);
             gpio_clear_pin(PIN_DEBUG1);
-
-            if (buf[0] == 0x1) {
-                motor_comms_send_byte(0x33);
-            }
+            motor_comms_send_byte(rx.data[0] + 1);
         }
-        
-        //delay(0xFFFF);
-        //gpio_toggle_pin(PIN_DEBUG1);
     }
 }
 
