@@ -14,7 +14,7 @@ static uint8_t self_address = 0;
 
 void motor_comms_init(uint8_t self_addr) {
     self_address = self_addr;
-    rs485_init();
+    rs485_init(0);
 }
 
 // Outgoing data structure:

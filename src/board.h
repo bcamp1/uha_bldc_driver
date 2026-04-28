@@ -79,6 +79,7 @@
 #define PRIO_SPI_ENCODER (1)
 #define PRIO_FOC_LOOP (2)
 #define PRIO_EIC_ENABLE (3)
+#define PRIO_RS485_RX (3)
 
 // Timer Frequencies
 #define FREQ_SPI_ENCODER (1700.0f)

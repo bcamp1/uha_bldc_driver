@@ -172,7 +172,7 @@ int main() {
     gpio_clear_pin(PIN_DEBUG1);
     gpio_clear_pin(PIN_DEBUG2);
 
-    rs485_init();
+    rs485_init(0);
     uart_println("RS485 TEST MODE");
     uart_print("SLAVE ADDRESS: ");
     uart_println_int(self_address);
@@ -228,8 +228,8 @@ int min(void) {
     //motor_init(&MOTOR_CONF_SUPPLY);
     //
 
-    rs485_init();
-    
+    rs485_init(0);
+
 
     uart_println("Waiting before enabling motor...");
     delay(0xFFFFF);

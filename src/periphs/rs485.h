@@ -10,7 +10,9 @@
 
 #include <stdint.h>
 
-void rs485_init(void);
+// rx_ready is invoked from ISR context whenever a byte is pushed into the
+// RX ring buffer. Pass NULL if no callback is needed.
+void rs485_init(void (*rx_ready)(void));
 
 // Input (async ring buffer)
 int rs485_get(void);        // Returns byte (0-255) or -1 if empty

@@ -9,6 +9,7 @@
 #include "gpio.h"
 #include "samd51j20a.h"
 #include "sercom.h"
+#include "../board.h"
 #include <stdint.h>
 #include "../periphs/delay.h"
 
@@ -28,7 +29,11 @@ static volatile uint8_t rx_buf[RS485_RX_BUF_SIZE];
 static volatile uint16_t rx_head = 0;  // Written by ISR
 static volatile uint16_t rx_tail = 0;  // Read by consumer
 
-void rs485_init(void) {
+static void (*rx_ready_cb)(void) = 0;
+
+void rs485_init(void (*rx_ready)(void)) {
+	rx_ready_cb = rx_ready;
+
 	// Init ports (PA04/PA05 use peripheral function D for SERCOM0)
 	gpio_init_pin(RS485_TX_PIN, GPIO_DIR_OUT, GPIO_ALTERNATE_D_SERCOM_ALT);
 	gpio_init_pin(RS485_RX_PIN, GPIO_DIR_IN,  GPIO_ALTERNATE_D_SERCOM_ALT);
@@ -52,7 +57,7 @@ void rs485_init(void) {
 
 	// Enable RX complete interrupt (SERCOM0_2 = RXC)
 	RS485_SERCOM->USART.INTENSET.bit.RXC = 1;
-	NVIC_SetPriority(SERCOM0_2_IRQn, 3);
+	NVIC_SetPriority(SERCOM0_2_IRQn, PRIO_RS485_RX);
 	NVIC_EnableIRQ(SERCOM0_2_IRQn);
 
 	RS485_SERCOM->USART.CTRLA.bit.ENABLE = 1;
@@ -114,5 +119,9 @@ void SERCOM0_2_Handler(void) {
 		}
 		rx_buf[rx_head] = data;
 		rx_head = next;
+
+		if (rx_ready_cb) {
+			rx_ready_cb();
+		}
 	}
 }
