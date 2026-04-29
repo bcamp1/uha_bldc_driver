@@ -84,4 +84,9 @@
 // Timer Frequencies
 #define FREQ_SPI_ENCODER (1700.0f)
 
+// Identity Addresses
+#define IDENT_ADDR_TAKEUP  (0b100)
+#define IDENT_ADDR_SUPPLY  (0b010)
+#define IDENT_ADDR_CAPSTAN (0b001)
+
 

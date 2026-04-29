@@ -3,6 +3,7 @@
 #include <stdbool.h>
 
 #define MOTOR_COMMS_MAX_DATA 32
+#define MOTOR_COMMS_BROADCAST_ADDR (0x55)
 
 typedef enum {
     RX_ERR_OK,

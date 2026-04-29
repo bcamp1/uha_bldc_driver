@@ -10,10 +10,12 @@
 #include <stdbool.h>
 #include "gate_driver.h"
 
-#define MOTOR_IDENT_TAKEUP   (0b100)
-#define MOTOR_IDENT_SUPPLY   (0b010)
-#define MOTOR_IDENT_CAPSTAN  (0b001)
-#define MOTOR_IDENT_UNKNOWN  (0b000)
+typedef enum {
+    MOTOR_IDENT_TAKEUP,
+    MOTOR_IDENT_SUPPLY,
+    MOTOR_IDENT_CAPSTAN,
+    MOTOR_IDENT_UNKNOWN,
+} MotorIdentity;
 
 typedef struct {
 	uint16_t poles;
@@ -30,7 +32,7 @@ float motor_get_position();
 void motor_test_calibration();
 float motor_get_pole_position();
 void motor_init_from_ident();
-void motor_init(MotorConfig* motor_config);
+void motor_init(MotorIdentity i);
 float motor_get_pole_pos_from_theta(float theta);
 void motor_energize_coils(float a, float b, float c);
 void motor_set_torque(float torque, float pole_position);

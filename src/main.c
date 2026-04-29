@@ -32,8 +32,10 @@ static void init_peripherals(void);
 static void stopwatch_test();
 static void encoder_spi_callback();
 static uint8_t get_address();
+static void set_motor_identity();
 
 static uint8_t self_address = 0;
+static MotorIdentity motor_identity = MOTOR_IDENT_UNKNOWN;
 
 static void init_peripherals(void) {
 	// Init clock to use 32K OSC in closed-loop 48MHz mode
@@ -46,15 +48,14 @@ static void init_peripherals(void) {
 	// Init useful debugging GPIO pins
 	gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
 	gpio_init_pin(PIN_DEBUG2, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
+    gpio_clear_pin(PIN_DEBUG1);
+    gpio_clear_pin(PIN_DEBUG2);
 	
 	// Init the UART
 	uart_init();
     
     // Stop Watch
     stopwatch_init();
-
-    // EIC
-    //eic_init();
     
     // Set hardware address
     gpio_init_pin(PIN_ADDR2, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
@@ -70,6 +71,27 @@ static uint8_t get_address() {
     addr |= (!gpio_get_pin(PIN_ADDR1) << 1);
     addr |= (!gpio_get_pin(PIN_ADDR0) << 0);
     return addr;
+}
+
+static void set_motor_identity() {
+    switch (self_address) {
+        case IDENT_ADDR_TAKEUP:
+            motor_identity = MOTOR_IDENT_TAKEUP;
+            uart_println("IDENTITY: TAKEUP");
+            break;
+        case IDENT_ADDR_SUPPLY:
+            motor_identity = MOTOR_IDENT_SUPPLY;
+            uart_println("IDENTITY: SUPPLY");
+            break;
+        case IDENT_ADDR_CAPSTAN:
+            motor_identity = MOTOR_IDENT_CAPSTAN;
+            uart_println("IDENTITY: TAKEUP");
+            break;
+        default:
+            motor_identity = MOTOR_IDENT_UNKNOWN;
+            uart_println("IDENTITY: UNKNOWN");
+            break;
+    }
 }
 
 static void enable_fpu(void) {
@@ -165,17 +187,14 @@ int main() {
     uart_println(FIRMWARE_AUTHOR);
     uart_println(FIRMWARE_DATE);
     uart_println("--------------------");
-    gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
-    gpio_init_pin(PIN_DEBUG2, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
 
-
-    gpio_clear_pin(PIN_DEBUG1);
-    gpio_clear_pin(PIN_DEBUG2);
 
     uart_println("RS485 TEST MODE");
-    uart_print("SLAVE ADDRESS: ");
+    uart_print("SELF ADDRESS: ");
     uart_println_int(self_address);
     motor_comms_init(self_address);
+    
+    set_motor_identity();
 
     while (true) {
         MotorCommsRxResult rx = motor_comms_get_data();
@@ -197,15 +216,6 @@ int min(void) {
     uart_println(FIRMWARE_AUTHOR);
     uart_println(FIRMWARE_DATE);
     uart_println("--------------------");
-    gpio_init_pin(PIN_DEBUG1, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
-    gpio_init_pin(PIN_DEBUG2, GPIO_DIR_OUT, GPIO_ALTERNATE_NONE);
-
-    gpio_init_pin(PIN_ADDR2, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
-    gpio_init_pin(PIN_ADDR1, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
-    gpio_init_pin(PIN_ADDR0, GPIO_DIR_IN, GPIO_ALTERNATE_NONE);
-
-    gpio_clear_pin(PIN_DEBUG1);
-    gpio_clear_pin(PIN_DEBUG2);
 
     //encoder_test();
     //motor_init(&MOTOR_CONF_SUPPLY);

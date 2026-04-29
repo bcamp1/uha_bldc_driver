@@ -18,8 +18,6 @@
 #include "../periphs/spi_async.h"
 #include "../board.h"
 
-static uint8_t identity = MOTOR_IDENT_UNKNOWN;
-
 MotorConfig MOTOR_CONF_SUPPLY = {
     .offset = 3.0237f,
     .poles = 4,
@@ -41,36 +39,31 @@ MotorConfig MOTOR_CONF_CAPSTAN = {
     .max_torque = 0.8f,
 };
 
-static MotorConfig* config = NULL;
+static MotorConfig* config = &MOTOR_CONF_SUPPLY;
+static MotorIdentity identity = MOTOR_IDENT_UNKNOWN;
 
-
-void motor_init_from_ident() {
-    identity = get_address();
-
+void motor_init(MotorIdentity i) {
+    identity = i;
     switch (identity) {
         case MOTOR_IDENT_CAPSTAN:
-            uart_println("Identity: capstan");
-            motor_init(&MOTOR_CONF_CAPSTAN);
+            //uart_println("Identity: capstan");
+            config = &MOTOR_CONF_CAPSTAN;
             break;
         case MOTOR_IDENT_TAKEUP:
-            uart_println("Identity: takeup");
-            motor_init(&MOTOR_CONF_TAKEUP);
+            //uart_println("Identity: takeup");
+            config = &MOTOR_CONF_TAKEUP;
             break;
         case MOTOR_IDENT_SUPPLY:
-            uart_println("Identity: supply");
-            motor_init(&MOTOR_CONF_SUPPLY);
-            break;
-        case MOTOR_IDENT_UNKNOWN:
-            uart_println("ERROR TRIED TO INIT WITH INVALID IDENTITY");
+            //uart_println("Identity: supply");
+            config = &MOTOR_CONF_SUPPLY;
             break;
         default:
             identity = MOTOR_IDENT_UNKNOWN;
-            uart_println("ERROR INVALID IDENTITY");
+            uart_print("Unable to init motor: unknown identity: ");
+            uart_println_int(identity);
+            break;
     }
-}
 
-void motor_init(MotorConfig* motor_config) {
-    config = motor_config;
     // Init current sense
     //curr_sense_init();
 

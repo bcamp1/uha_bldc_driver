@@ -82,9 +82,11 @@ static void feed(uint8_t byte) {
         case ST_ADDR:
             // Always advance — even if the frame isn't for us we need to keep
             // counting bytes so a 0xAA in the cargo doesn't get mis-parsed as SOF.
-            for_us = (byte == self_address);
+            for_us = (byte == self_address) || (byte == MOTOR_COMMS_BROADCAST_ADDR);
             if (for_us) {
-                calc_checksum = self_address;
+                // Seed with the addr actually on the wire — sender's checksum
+                // includes whichever address (self or broadcast) was used.
+                calc_checksum = byte;
             }
             state = ST_LEN;
             break;
