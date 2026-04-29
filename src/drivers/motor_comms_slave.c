@@ -30,6 +30,7 @@ static volatile uint8_t data_idx = 0;
 static volatile uint8_t scratch[MOTOR_COMMS_MAX_DATA];
 
 static volatile bool     for_us = false;
+static volatile bool     was_broadcast = false;
 static volatile uint16_t drop_remaining = 0;
 
 static volatile MotorCommsRxResult latched;
@@ -49,6 +50,7 @@ static void discard(void) {
 static void latch_success(void) {
     latched.err = RX_ERR_OK;
     latched.data_len = expected_len;
+    latched.broadcast = was_broadcast;
     for (uint8_t i = 0; i < expected_len; i++) {
         latched.data[i] = scratch[i];
     }
@@ -82,7 +84,8 @@ static void feed(uint8_t byte) {
         case ST_ADDR:
             // Always advance — even if the frame isn't for us we need to keep
             // counting bytes so a 0xAA in the cargo doesn't get mis-parsed as SOF.
-            for_us = (byte == self_address) || (byte == MOTOR_COMMS_BROADCAST_ADDR);
+            was_broadcast = (byte == MOTOR_COMMS_BROADCAST_ADDR);
+            for_us = was_broadcast || (byte == self_address);
             if (for_us) {
                 // Seed with the addr actually on the wire — sender's checksum
                 // includes whichever address (self or broadcast) was used.
@@ -137,6 +140,7 @@ void motor_comms_init(uint8_t self_addr) {
     state = ST_SOF;
     drop_remaining = 0;
     for_us = false;
+    was_broadcast = false;
     result_ready = false;
     rs485_init(on_rx_ready);
 }
@@ -172,7 +176,7 @@ void motor_comms_send_float(uint8_t addr, const uint8_t command, float data) {
 
 MotorCommsRxResult motor_comms_get_data(void) {
     if (!result_ready) {
-        MotorCommsRxResult empty = { .err = RX_ERR_NO_DATA, .data_len = 0 };
+        MotorCommsRxResult empty = { .err = RX_ERR_NO_DATA, .data_len = 0, .broadcast = false };
         return empty;
     }
 
@@ -180,6 +184,7 @@ MotorCommsRxResult motor_comms_get_data(void) {
     MotorCommsRxResult out;
     out.err = latched.err;
     out.data_len = latched.data_len;
+    out.broadcast = latched.broadcast;
     for (uint8_t i = 0; i < latched.data_len; i++) {
         out.data[i] = latched.data[i];
     }

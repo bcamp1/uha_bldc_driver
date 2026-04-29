@@ -14,6 +14,7 @@ typedef struct {
     RXError err;
     uint8_t data[MOTOR_COMMS_MAX_DATA];
     uint8_t data_len;
+    bool broadcast;  // true if frame was sent to MOTOR_COMMS_BROADCAST_ADDR
 } MotorCommsRxResult;
 
 void motor_comms_print_error(RXError err);
