@@ -17,6 +17,7 @@ typedef enum {
     ST_LEN,
     ST_CKSUM,
     ST_DATA,
+    ST_DROP_TAIL,  // Frame isn't for us (or too big); drain remaining bytes to stay aligned
 } RxState;
 
 static uint8_t self_address = 0;
@@ -27,6 +28,9 @@ static volatile uint8_t given_checksum = 0;
 static volatile uint8_t calc_checksum = 0;
 static volatile uint8_t data_idx = 0;
 static volatile uint8_t scratch[MOTOR_COMMS_MAX_DATA];
+
+static volatile bool     for_us = false;
+static volatile uint16_t drop_remaining = 0;
 
 static volatile MotorCommsRxResult latched;
 static volatile bool result_ready = false;
@@ -76,16 +80,19 @@ static void feed(uint8_t byte) {
             }
             break;
         case ST_ADDR:
-            if (byte != self_address) {
-                discard();
-                return;
+            // Always advance — even if the frame isn't for us we need to keep
+            // counting bytes so a 0xAA in the cargo doesn't get mis-parsed as SOF.
+            for_us = (byte == self_address);
+            if (for_us) {
+                calc_checksum = self_address;
             }
-            calc_checksum = self_address;
             state = ST_LEN;
             break;
         case ST_LEN:
-            if (byte > MOTOR_COMMS_MAX_DATA) {
-                discard();
+            if (!for_us || byte > MOTOR_COMMS_MAX_DATA) {
+                // Skip the cksum byte plus `byte` cargo bytes, then resync.
+                drop_remaining = (uint16_t)byte + 1;
+                state = ST_DROP_TAIL;
                 return;
             }
             expected_len = byte;
@@ -108,6 +115,11 @@ static void feed(uint8_t byte) {
                 finalize_checksum();
             }
             break;
+        case ST_DROP_TAIL:
+            if (--drop_remaining == 0) {
+                state = ST_SOF;
+            }
+            break;
     }
 }
 
@@ -121,6 +133,8 @@ static void on_rx_ready(void) {
 void motor_comms_init(uint8_t self_addr) {
     self_address = self_addr;
     state = ST_SOF;
+    drop_remaining = 0;
+    for_us = false;
     result_ready = false;
     rs485_init(on_rx_ready);
 }

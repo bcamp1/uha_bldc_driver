@@ -181,10 +181,7 @@ int main() {
         MotorCommsRxResult rx = motor_comms_get_data();
 
         if (rx.err == RX_ERR_OK) {
-            gpio_set_pin(PIN_DEBUG1);
-            delay(0xFF);
-            gpio_clear_pin(PIN_DEBUG1);
-            motor_comms_send_byte(rx.data[0] + 1);
+            motor_comms_send_byte(rx.data[0]);
         }
     }
 }
