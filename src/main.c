@@ -130,14 +130,24 @@ static void encoder_spi_callback() {
     spi_async_start_read(NULL);
 }
 
+// INT16_MAX -> +1.0f, INT16_MIN -> -1.0f. Inverse of torque_float_to_int16.
+static float torque_int16_to_float(int16_t raw) {
+    if (raw >= 0) return (float)raw / 32767.0f;
+    return (float)raw / 32768.0f;
+}
+
+static int16_t bytes_to_int16(uint8_t msb, uint8_t lsb) {
+    return (int16_t)(((uint16_t)msb << 8) | lsb);
+}
+
 static void encoder_test() {
     uart_println("Starting motor encoder test");
     delay(0xFFF);
     uart_put('\n');
     uart_put('\n');
-    motor_init(&MOTOR_CONF_TAKEUP);
+    motor_init(MOTOR_IDENT_TAKEUP);
     motor_enable();
-    timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
+    timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
     while (true) {
         float pos = motor_get_pole_position();
         uart_print("POS: ");
@@ -151,8 +161,8 @@ static void motor_test() {
     delay(0xFFF);
     uart_put('\n');
     uart_put('\n');
-    motor_init(&MOTOR_CONF_TAKEUP);
-    timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
+    motor_init(MOTOR_IDENT_TAKEUP);
+    timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
 
     delay(0xFFFF);
     motor_enable();
@@ -200,7 +210,18 @@ int main() {
         MotorCommsRxResult rx = motor_comms_get_data();
 
         if (rx.err == RX_ERR_OK) {
-            motor_comms_send_byte(rx.data[0]);
+            if (rx.data_len != 5) {
+                uart_println("Wrong data size");
+            } else if (rx.data[0] != 0x7) {
+                uart_println("Wrong command");
+            } else {
+                float data1 = torque_int16_to_float(bytes_to_int16(rx.data[1], rx.data[2]));
+                float data2 = torque_int16_to_float(bytes_to_int16(rx.data[3], rx.data[4]));
+
+                uart_print_float(data1);
+                uart_print(" ");
+                uart_println_float(data2);
+            }
         }
     }
 }
@@ -232,14 +253,14 @@ int min(void) {
     } while (motor_get_identity() == MOTOR_IDENT_UNKNOWN);
 
     if (motor_get_identity() != MOTOR_IDENT_CAPSTAN) {
-        timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
+        timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
         delay(0x3FFFF);
     }
 
     motor_enable();
     uart_println("Motor enabled.");
 
-    timer_schedule(1, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
+    timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
 
     motor_calibrate_encoder();
 

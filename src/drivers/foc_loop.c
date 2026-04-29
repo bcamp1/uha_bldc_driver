@@ -22,8 +22,6 @@ static void deinitialize_motor_module();
 static void foc_loop();
 static void foc_loop_capstan();
 
-static float foc_loop_freq = 1004.0f;
-
 static float curr_pos = 0.0f;
 static float prev_pos = 0.0f;
 static float speed = 0.0f;
@@ -69,11 +67,11 @@ static void initialize_motor_module() {
 
     // Schedule FOC loop
     if (motor_get_identity() == MOTOR_IDENT_CAPSTAN) {
-        uart_println("Running capstan control loop");
-        timer_schedule(0, CAPSTAN_SAMPLE_RATE, PRIO_FOC_LOOP, foc_loop_capstan);
+        timer_schedule(TIMER_ID_FOC_LOOP, CAPSTAN_SAMPLE_RATE, PRIO_FOC_LOOP, foc_loop_capstan);
+        uart_println("Scheduled capstan loop");
     } else {
-        uart_println("Running standard control loop");
-        timer_schedule(0, foc_loop_freq, PRIO_FOC_LOOP, foc_loop);
+        timer_schedule(TIMER_ID_FOC_LOOP, FREQ_FOC_LOOP, PRIO_FOC_LOOP, foc_loop);
+        uart_println("Scheduled FOC loop");
     }
     //uart_println("Motor module enabled");
 } 

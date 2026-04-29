@@ -75,7 +75,7 @@
 #define EVENT_EIC_TCC_CHANNEL (1)
 
 // Priorities
-#define PRIO_SPI_SLAVE (0)
+#define PRIO_COMMAND_CENTER (0)
 #define PRIO_SPI_ENCODER (1)
 #define PRIO_FOC_LOOP (2)
 #define PRIO_EIC_ENABLE (3)
@@ -83,6 +83,13 @@
 
 // Timer Frequencies
 #define FREQ_SPI_ENCODER (1700.0f)
+#define FREQ_FOC_LOOP (1004.0f)
+#define FREQ_COMMAND_CENTER (600.0f)
+
+// Timer IDs
+#define TIMER_ID_SPI_ENCODER (1)
+#define TIMER_ID_FOC_LOOP (0)
+#define TIMER_ID_COMMAND_CENTER (2)
 
 // Identity Addresses
 #define IDENT_ADDR_TAKEUP  (0b100)
