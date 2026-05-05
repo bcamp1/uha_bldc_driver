@@ -1,7 +1,6 @@
 #include "command_center.h"
 #include "../periphs/timer.h"
 #include "../board.h"
-#include "motor.h"
 #include "motor_comms_slave.h"
 
 MotorIdentity identity = MOTOR_IDENT_UNKNOWN;
@@ -135,5 +134,17 @@ void command_center_init(MotorIdentity i) {
 
 void command_center_register_cb(CommandCenterCb cb) {
     command_cb = cb;
+}
+
+float command_center_get_torque() {
+    return commanded_torque;
+}
+
+CapstanSetting command_center_get_capstan_setting() {
+    return capstan_setting;
+}
+
+void command_center_set_fault_status(uint8_t fs) {
+    fault_status = fs;
 }
 

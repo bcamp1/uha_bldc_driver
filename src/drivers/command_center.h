@@ -1,4 +1,5 @@
 #pragma once
+#include "motor.h"
 
 typedef enum {
     CAPSTAN_CMD_15IPS,
@@ -18,6 +19,11 @@ typedef enum {
 
 typedef void (*CommandCenterCb)(CommandCenterCmd cmd);
 
-void command_center_init();
+void command_center_init(MotorIdentity i);
 void command_center_register_cb(CommandCenterCb cb);
+
+float command_center_get_torque();
+CapstanSetting command_center_get_capstan_setting();
+void command_center_set_fault_status(uint8_t fs);
+
 

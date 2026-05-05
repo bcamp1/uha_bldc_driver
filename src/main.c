@@ -22,6 +22,7 @@
 #include "periphs/spi_async.h"
 #include "periphs/eic.h"
 #include "drivers/motor_comms_slave.h"
+#include "drivers/command_center.h"
 
 #define FIRMWARE_VERSION "UHA BLDC FIRMWARE v0.1"
 #define FIRMWARE_AUTHOR "AUTHOR: BRANSON CAMP"
@@ -186,6 +187,46 @@ void current_printer() {
     __set_PRIMASK(primask);
 }
 
+static void command_center_cb(CommandCenterCmd cmd) {
+    switch (cmd) {
+        case CMD_ENABLE:
+            uart_println("CMD_ENABLE");
+            break;
+        case CMD_DISABLE:
+            uart_println("CMD_DISABLE");
+            break;
+        case CMD_CALIB_ENCODER:
+            uart_println("CMD_CALIB_ENCODER");
+            break;
+        case CMD_CAPSTAN_SETTING:
+            uart_print("CMD_CAPSTAN_SETTING: ");
+            CapstanSetting setting = command_center_get_capstan_setting();
+            switch (setting) {
+                case CAPSTAN_CMD_15IPS:
+                    uart_println("CAPSTAN_CMD_15IPS");
+                    break;
+                case CAPSTAN_CMD_30IPS:
+                    uart_println("CAPSTAN_CMD_30IPS");
+                    break;
+                case CAPSTAN_CMD_7P5IPS:
+                    uart_println("CAPSTAN_CMD_7P5IPS");
+                    break;
+                case CAPSTAN_CMD_OFF:
+                    uart_println("CAPSTAN_CMD_OFF");
+                    break;
+                case CAPSTAN_CMD_OTHER:
+                    uart_println("CAPSTAN_CMD_OTHER");
+                    break;
+            }
+            break;
+        case CMD_TORQUE_UPDATE:
+            uart_print("CMD_TORQUE_UPDATE: ");
+            float torque = command_center_get_torque();
+            uart_println_float(torque);
+            break;
+    }
+}
+
 int main() {
     init_peripherals();
     delay(0xFFF);
@@ -205,8 +246,11 @@ int main() {
     motor_comms_init(self_address);
     
     set_motor_identity();
+    command_center_init(motor_identity);
+    command_center_register_cb(command_center_cb);
 
     while (true) {
+        /*
         MotorCommsRxResult rx = motor_comms_get_data();
 
         if (rx.err == RX_ERR_OK) {
@@ -223,6 +267,7 @@ int main() {
                 uart_println_float(data2);
             }
         }
+        */
     }
 }
 
