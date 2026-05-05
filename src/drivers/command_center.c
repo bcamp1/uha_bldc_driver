@@ -1,6 +1,4 @@
 #include "command_center.h"
-#include "../periphs/timer.h"
-#include "../board.h"
 #include "motor_comms_slave.h"
 
 MotorIdentity identity = MOTOR_IDENT_UNKNOWN;
@@ -129,7 +127,7 @@ static void command_center_tick() {
 
 void command_center_init(MotorIdentity i) {
     identity = i;
-    timer_schedule(TIMER_ID_COMMAND_CENTER, FREQ_COMMAND_CENTER, PRIO_COMMAND_CENTER, command_center_tick); 
+    motor_comms_register_message_ready_cb(command_center_tick);
 }
 
 void command_center_register_cb(CommandCenterCb cb) {

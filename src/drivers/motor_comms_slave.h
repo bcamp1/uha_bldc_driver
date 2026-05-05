@@ -30,6 +30,13 @@ float motor_comms_data_to_float(uint8_t* data);
 // other slaves, oversized frames, and checksum failures are dropped silently.
 MotorCommsRxResult motor_comms_get_data(void);
 
+typedef void (*MotorCommsMessageReadyCb)(void);
+
+// Invoked from the RS485 RX ISR right after a checksum-valid frame is
+// latched. Inside the callback, motor_comms_get_data() will return the
+// freshly-latched frame. Keep work short — this is ISR context.
+void motor_comms_register_message_ready_cb(MotorCommsMessageReadyCb cb);
+
 // Fraction of received frames (addressed to us) that passed the checksum.
 // Returns 1.0f if no frames have been seen yet.
 float motor_comms_checksum_success_rate(void);

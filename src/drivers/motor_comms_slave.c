@@ -36,6 +36,8 @@ static volatile uint16_t drop_remaining = 0;
 static volatile MotorCommsRxResult latched;
 static volatile bool result_ready = false;
 
+static MotorCommsMessageReadyCb message_ready_cb = 0;
+
 static volatile uint32_t checksum_success = 0;
 static volatile uint32_t checksum_fail = 0;
 
@@ -56,6 +58,9 @@ static void latch_success(void) {
     }
     result_ready = true;
     state = ST_SOF;
+    if (message_ready_cb != 0) {
+        message_ready_cb();
+    }
 }
 
 static void finalize_checksum(void) {
@@ -172,6 +177,10 @@ void motor_comms_send_float(uint8_t addr, const uint8_t command, float data) {
     buf[0] = command;
     memcpy(&buf[1], &data, 4);
     motor_comms_send_data(buf, 5);
+}
+
+void motor_comms_register_message_ready_cb(MotorCommsMessageReadyCb cb) {
+    message_ready_cb = cb;
 }
 
 MotorCommsRxResult motor_comms_get_data(void) {
