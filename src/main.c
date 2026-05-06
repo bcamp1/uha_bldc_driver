@@ -248,6 +248,7 @@ int main() {
     set_motor_identity();
     command_center_init(motor_identity);
     command_center_register_cb(command_center_cb);
+    command_center_set_fault_status(22);
 
     while (true) {
         /*
