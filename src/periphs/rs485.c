@@ -11,6 +11,7 @@
 #include "sercom.h"
 #include "../board.h"
 #include <stdint.h>
+#include <stdbool.h>
 #include "../periphs/delay.h"
 
 #define RS485_TX_PIN	PIN_PA04
@@ -25,9 +26,17 @@
 #define RS485_RX_BUF_SIZE 128  // Must be a power of two
 #define RS485_RX_BUF_MASK (RS485_RX_BUF_SIZE - 1)
 
+#define RS485_TX_BUF_SIZE 16  // Must be a power of two
+#define RS485_TX_BUF_MASK (RS485_TX_BUF_SIZE - 1)
+
 static volatile uint8_t rx_buf[RS485_RX_BUF_SIZE];
 static volatile uint16_t rx_head = 0;  // Written by ISR
 static volatile uint16_t rx_tail = 0;  // Read by consumer
+
+static volatile uint8_t tx_buf[RS485_TX_BUF_SIZE];
+static volatile uint16_t tx_head = 0;  // Written by producer
+static volatile uint16_t tx_tail = 0;  // Read by DRE ISR
+static volatile bool tx_active = false;  // True while TXEN is asserted
 
 static void (*rx_ready_cb)(void) = 0;
 
@@ -63,34 +72,57 @@ void rs485_init(void (*rx_ready)(void)) {
 	NVIC_SetPriority(SERCOM0_2_IRQn, PRIO_RS485_RX);
 	NVIC_EnableIRQ(SERCOM0_2_IRQn);
 
+	// TX interrupts (SERCOM0_0 = DRE, SERCOM0_1 = TXC). Enable the NVIC lines
+	// up front, but leave the SERCOM-level INTEN bits clear until rs485_send_bytes
+	// has data to push.
+	NVIC_SetPriority(SERCOM0_0_IRQn, PRIO_RS485_TX);
+	NVIC_SetPriority(SERCOM0_1_IRQn, PRIO_RS485_TX);
+	NVIC_EnableIRQ(SERCOM0_0_IRQn);
+	NVIC_EnableIRQ(SERCOM0_1_IRQn);
+
 	RS485_SERCOM->USART.CTRLA.bit.ENABLE = 1;
 	while (RS485_SERCOM->USART.SYNCBUSY.bit.ENABLE) {}
 }
 
-void rs485_begin_transaction(void) {
-	gpio_set_pin(RS485_TXEN_PIN);
-	delay(1); // Settle before transmitting (TXEN spec is 55ns)
-}
-
-void rs485_end_transaction(void) {
-	// Wait for the last byte (including stop bit) to fully shift out
-	while (!RS485_SERCOM->USART.INTFLAG.bit.TXC) {}
-	delay(1); // Settle before releasing bus
-	gpio_clear_pin(RS485_TXEN_PIN);
-}
-
-// Low-level byte write. Caller must be inside a begin/end transaction.
-void rs485_put(uint8_t byte) {
-	RS485_SERCOM->USART.DATA.reg = byte;
-	while (!RS485_SERCOM->USART.INTFLAG.bit.DRE) {}
-}
-
+// Push bytes into the TX ring and let the DRE/TXC ISRs do the shift-out.
+// Returns once every byte is queued; if the ring fills mid-call, spins until
+// the DRE ISR drains some — caller MUST be at a lower priority than
+// PRIO_RS485_TX or it will deadlock here.
 void rs485_send_bytes(const uint8_t* data, uint16_t len) {
-	rs485_begin_transaction();
 	for (uint16_t i = 0; i < len; i++) {
-		rs485_put(data[i]);
+		while (((tx_head + 1) & RS485_TX_BUF_MASK) == tx_tail) {
+			// Ring full — spin while the DRE ISR drains.
+		}
+
+		__disable_irq();
+		bool was_idle = !tx_active;
+		if (was_idle) {
+			// Claim the bus before re-enabling IRQs so a second producer can't
+			// also see the bus as idle and double-fire the cold-start path.
+			tx_active = true;
+		}
+		tx_buf[tx_head] = data[i];
+		tx_head = (tx_head + 1) & RS485_TX_BUF_MASK;
+		__enable_irq();
+
+		if (was_idle) {
+			// Cold start: drive TXEN, settle (55ns spec), arm DRE so the ISR
+			// pumps the ring.
+			gpio_set_pin(RS485_TXEN_PIN);
+			delay(1);
+			RS485_SERCOM->USART.INTENSET.reg = SERCOM_USART_INTENSET_DRE;
+		} else {
+			// Mid-transmission. If the DRE ISR had drained the ring and handed
+			// off to TXC, swap back to DRE so the new bytes get sent. Atomic
+			// w.r.t. the TXC ISR.
+			__disable_irq();
+			if (RS485_SERCOM->USART.INTENSET.bit.TXC) {
+				RS485_SERCOM->USART.INTENCLR.reg = SERCOM_USART_INTENCLR_TXC;
+				RS485_SERCOM->USART.INTENSET.reg = SERCOM_USART_INTENSET_DRE;
+			}
+			__enable_irq();
+		}
 	}
-	rs485_end_transaction();
 }
 
 int rs485_available(void) {
@@ -130,6 +162,42 @@ void SERCOM0_2_Handler(void) {
 
 		if (rx_ready_cb) {
 			rx_ready_cb();
+		}
+	}
+}
+
+// DRE interrupt: SERCOM is ready for the next byte.
+// Pull from the TX ring and write DATA. When the ring drains, hand off to TXC
+// so we can detect "last bit fully on the wire" before releasing TXEN. The DRE
+// flag auto-clears on a DATA write or on disabling its enable.
+void SERCOM0_0_Handler(void) {
+	if (RS485_SERCOM->USART.INTFLAG.bit.DRE) {
+		if (tx_head == tx_tail) {
+			RS485_SERCOM->USART.INTENCLR.reg = SERCOM_USART_INTENCLR_DRE;
+			RS485_SERCOM->USART.INTFLAG.reg = SERCOM_USART_INTFLAG_TXC;  // W1C any stale flag
+			RS485_SERCOM->USART.INTENSET.reg = SERCOM_USART_INTENSET_TXC;
+		} else {
+			uint8_t byte = tx_buf[tx_tail];
+			tx_tail = (tx_tail + 1) & RS485_TX_BUF_MASK;
+			RS485_SERCOM->USART.DATA.reg = byte;
+		}
+	}
+}
+
+// TXC interrupt: the last byte (including stop bit) has fully shifted out.
+// Re-check the ring before releasing TXEN — a producer may have pushed bytes
+// between the DRE drain and now, in which case we keep transmitting.
+void SERCOM0_1_Handler(void) {
+	if (RS485_SERCOM->USART.INTFLAG.bit.TXC) {
+		RS485_SERCOM->USART.INTFLAG.reg = SERCOM_USART_INTFLAG_TXC;  // W1C
+		if (tx_head != tx_tail) {
+			RS485_SERCOM->USART.INTENCLR.reg = SERCOM_USART_INTENCLR_TXC;
+			RS485_SERCOM->USART.INTENSET.reg = SERCOM_USART_INTENSET_DRE;
+		} else {
+			RS485_SERCOM->USART.INTENCLR.reg = SERCOM_USART_INTENCLR_TXC;
+			delay(1);  // Settle before releasing the bus
+			gpio_clear_pin(RS485_TXEN_PIN);
+			tx_active = false;
 		}
 	}
 }

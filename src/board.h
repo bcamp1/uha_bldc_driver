@@ -80,6 +80,10 @@
 #define PRIO_FOC_LOOP (2)
 #define PRIO_EIC_ENABLE (3)
 #define PRIO_RS485_RX (3)
+// Must be a higher priority (smaller number) than any caller of rs485_send_bytes,
+// otherwise a producer stuck on a full TX ring will deadlock waiting for the DRE
+// ISR that can never preempt it.
+#define PRIO_RS485_TX (2)
 
 // Timer Frequencies
 #define FREQ_SPI_ENCODER (1700.0f)
