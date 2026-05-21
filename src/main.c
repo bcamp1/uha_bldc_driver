@@ -191,9 +191,11 @@ static void command_center_cb(CommandCenterCmd cmd) {
     switch (cmd) {
         case CMD_ENABLE:
             uart_println("CMD_ENABLE");
+            motor_enable();
             break;
         case CMD_DISABLE:
             uart_println("CMD_DISABLE");
+            motor_disable();
             break;
         case CMD_CALIB_ENCODER:
             uart_println("CMD_CALIB_ENCODER");
@@ -223,6 +225,7 @@ static void command_center_cb(CommandCenterCmd cmd) {
             uart_print("CMD_TORQUE_UPDATE: ");
             float torque = command_center_get_torque();
             uart_println_float(torque);
+            foc_loop_set_torque(torque);
             break;
     }
 }
@@ -245,10 +248,22 @@ int main() {
     uart_println_int(self_address);
     motor_comms_init(self_address);
     
+    // Motor
     set_motor_identity();
-    command_center_init(motor_identity);
+    motor_init(motor_identity);
+    motor_disable();
+
+    // Encoder
+    timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
+
+    // FOC Loop
+    foc_loop_init();
+    uart_println("FOC Loop enabled.");
+
+    // Command Center
     command_center_register_cb(command_center_cb);
-    command_center_set_fault_status(22);
+    command_center_set_fault_status(0);
+    command_center_init(motor_identity);
 
     while (true) {
         /*
