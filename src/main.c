@@ -221,12 +221,13 @@ static void command_center_cb(CommandCenterCmd cmd) {
                     break;
             }
             break;
-        case CMD_TORQUE_UPDATE:
-            uart_print("CMD_TORQUE_UPDATE: ");
+        case CMD_TORQUE_UPDATE: {
             float torque = command_center_get_torque();
-            uart_println_float(torque);
+            //uart_print("CMD_TORQUE_UPDATE: ");
+            //uart_println_float(torque);
             foc_loop_set_torque(torque);
             break;
+        }
     }
 }
 

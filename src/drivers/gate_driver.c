@@ -55,9 +55,13 @@ void gate_driver_set_3x() {
     // Set to 3x PWM mode
     uint16_t pwm_mode = 0b01; // 3x PWM Mode
     uint16_t control_reg_data = (pwm_mode << 5) | 0b1; // Add in clr_flt
-    uart_println_int_base(gate_driver_read_reg(DRV_REG_DRIVER_CONTROL), 2);
-    gate_driver_write_reg(DRV_REG_DRIVER_CONTROL, control_reg_data);
-    uart_println_int_base(gate_driver_read_reg(DRV_REG_DRIVER_CONTROL), 2);
+    uint16_t register_contents = 0;
+    //uart_println("Setting 3x");
+    while ((register_contents & 0b100000) == 0) {
+        gate_driver_write_reg(DRV_REG_DRIVER_CONTROL, control_reg_data);
+        register_contents = gate_driver_read_reg(DRV_REG_DRIVER_CONTROL);
+        //uart_println_int_base(register_contents, 2);
+    }
 }
 
 void gate_driver_set_idrive(uint16_t hs_p, uint16_t hs_n, uint16_t ls_p, uint16_t ls_n) {
