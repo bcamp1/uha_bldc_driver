@@ -26,7 +26,7 @@ MotorConfig MOTOR_CONF_SUPPLY = {
 };
 
 MotorConfig MOTOR_CONF_TAKEUP = {
-    .offset = 0.5809f,
+    .offset = 3.9542f,
     .poles = 4,
     .speed_control = false,
     .max_torque = 0.6f,

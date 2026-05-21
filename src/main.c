@@ -256,6 +256,7 @@ int main() {
 
     // Encoder
     timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
+    //motor_calibrate_encoder();
 
     // FOC Loop
     foc_loop_init();
