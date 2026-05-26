@@ -31,7 +31,6 @@
 static void enable_fpu(void);
 static void init_peripherals(void);
 static void stopwatch_test();
-static void encoder_spi_callback();
 static uint8_t get_address();
 static void set_motor_identity();
 
@@ -132,18 +131,13 @@ static void stopwatch_test() {
     }
 }
 
-static void encoder_spi_callback() {
-    spi_async_start_read(NULL);
-}
-
 static void encoder_test() {
     uart_println("Starting motor encoder test");
     delay(0xFFF);
     uart_put('\n');
     uart_put('\n');
-    motor_init(MOTOR_IDENT_TAKEUP);
+    motor_init(MOTOR_IDENT_TAKEUP);  // schedules encoder timer internally
     motor_enable();
-    timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
     while (true) {
         float pos = motor_get_pole_position();
         uart_print("POS: ");
@@ -157,8 +151,7 @@ static void motor_test() {
     delay(0xFFF);
     uart_put('\n');
     uart_put('\n');
-    motor_init(MOTOR_IDENT_TAKEUP);
-    timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
+    motor_init(MOTOR_IDENT_TAKEUP);  // schedules encoder timer internally
 
     delay(0xFFFF);
     motor_enable();
@@ -223,9 +216,8 @@ int main() {
     set_motor_identity();
     motor_init(motor_identity);
 
-    // Calibrate Encoder
+    // Calibrate Encoder (encoder timer is already running, started by motor_init)
     motor_enable();
-    timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
     motor_calibrate_encoder();
     motor_disable();
 
@@ -282,14 +274,11 @@ int min(void) {
     } while (motor_get_identity() == MOTOR_IDENT_UNKNOWN);
 
     if (motor_get_identity() != MOTOR_IDENT_CAPSTAN) {
-        timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
         delay(0x3FFFF);
     }
 
     motor_enable();
     uart_println("Motor enabled.");
-
-    timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER, PRIO_SPI_ENCODER, encoder_spi_callback);
 
     motor_calibrate_encoder();
 

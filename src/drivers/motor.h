@@ -19,7 +19,10 @@ typedef enum {
 
 typedef struct {
 	uint16_t poles;
-    float offset;
+    // volatile: written by motor_calibrate_encoder (main) and read every FOC
+    // tick via motor_get_pole_pos_from_theta. Prevents the compiler from
+    // caching the value across the ISR boundary.
+    volatile float offset;
     float max_torque;
     bool speed_control;
 } MotorConfig;

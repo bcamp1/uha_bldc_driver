@@ -25,7 +25,10 @@ static float curr_pos = 0.0f;
 static float prev_pos = 0.0f;
 static float speed = 0.0f;
 
-static float torque_command = 0.0f;
+// Written from RS485 RX ISR context (via command_center_cb → foc_loop_set_torque)
+// and read from the FOC ISR. volatile prevents the compiler from caching or
+// hoisting the read across the ISR boundary.
+static volatile float torque_command = 0.0f;
 
 static bool foc_loop_running = false;
 

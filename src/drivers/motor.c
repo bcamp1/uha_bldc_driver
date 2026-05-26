@@ -6,6 +6,7 @@
  */ 
 
 #include <stdint.h>
+#include <sam.h>
 #include "motor.h"
 #include "gate_driver.h"
 #include "curr_sense.h"
@@ -16,6 +17,7 @@
 #include "../foc/foc.h"
 #include "../periphs/delay.h"
 #include "../periphs/spi_async.h"
+#include "../periphs/timer.h"
 #include "../board.h"
 
 MotorConfig MOTOR_CONF_SUPPLY = {
@@ -41,6 +43,13 @@ MotorConfig MOTOR_CONF_CAPSTAN = {
 
 static MotorConfig* config = &MOTOR_CONF_SUPPLY;
 static MotorIdentity identity = MOTOR_IDENT_UNKNOWN;
+
+// Encoder is sampled by a 1700 Hz timer that kicks off an async SPI read on
+// SERCOM3. motor_enable/disable temporarily mask this IRQ to prevent
+// SERCOM3 contention with the gate driver (which shares SERCOM3).
+static void encoder_spi_callback(void) {
+    spi_async_start_read(NULL);
+}
 
 void motor_init(MotorIdentity i) {
     identity = i;
@@ -70,9 +79,14 @@ void motor_init(MotorIdentity i) {
     // Init gate driver
     gate_driver_init();
 
-	// Init encoder SPI
-	//spi_init(&SPI_CONF_MTR_ENCODER);
+    // Init encoder SPI
     spi_async_init();
+
+    // Take ownership of the encoder sample timer. It runs continuously from
+    // boot; motor_enable/disable mask it briefly to keep SERCOM3 exclusive
+    // while talking to the gate driver.
+    timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER,
+                   PRIO_SPI_ENCODER, encoder_spi_callback);
 }
 
 float motor_get_position() {
@@ -177,11 +191,23 @@ void motor_print_reg(uint8_t address, char* name) {
 }
 
 void motor_enable() {
+    // SERCOM3 is shared with the encoder SPI. Mask the 1700 Hz encoder timer
+    // (TC1 == TIMER_ID_SPI_ENCODER) and drain any in-flight encoder read
+    // before driving the gate driver bus, otherwise the encoder ISR can
+    // preempt mid-transaction and leave spi_busy=true forever.
+    NVIC_DisableIRQ(TC1_IRQn);
+    while (spi_async_is_busy()) { }
     gate_driver_enable();
+    NVIC_EnableIRQ(TC1_IRQn);
 }
 
 void motor_disable() {
+    // gate_driver_disable is GPIO-only today, but keep the exclusion
+    // symmetric so future SPI on this path stays safe.
+    NVIC_DisableIRQ(TC1_IRQn);
+    while (spi_async_is_busy()) { }
     gate_driver_disable();
+    NVIC_EnableIRQ(TC1_IRQn);
 }
 
 void motor_set_high_z() {
