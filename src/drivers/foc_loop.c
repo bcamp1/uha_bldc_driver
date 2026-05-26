@@ -9,6 +9,7 @@
 #include "../board.h"
 #include <sam.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #define CAPSTAN_POLE_FREQ       (285.805f)
 //#define CAPSTAN_POLE_FREQ       (50.805f)
@@ -16,9 +17,7 @@
 #define CAPSTAN_MOTOR_STRENGTH  (0.8f)
 #define TWOPI (6.28318f)
 
-static void enable_callback();
-static void initialize_motor_module();
-static void deinitialize_motor_module();
+static void schedule_foc_timer();
 static void foc_loop();
 static void foc_loop_capstan();
 
@@ -27,6 +26,8 @@ static float prev_pos = 0.0f;
 static float speed = 0.0f;
 
 static float torque_command = 0.0f;
+
+static bool foc_loop_running = false;
 
 static float sub_angles(float x, float y) {
     float a = x - y;
@@ -50,45 +51,12 @@ static float sub_angles(float x, float y) {
     }
 }
 
-static void initialize_motor_module() {
-    //motor_init_from_ident();
-    //motor_enable();
-    delay(0xFFF);
-    uart_put('\n');
-    uart_put('\n');
-    //motor_calibrate_encoder();
-    //gate_driver_set_idrive(0b000, 0b000, 0b000, 0b000);
-    gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
-    //motor_print_reg(DRV_REG_DRIVER_CONTROL, "Control");
-    //motor_print_reg(DRV_REG_FAULT_STATUS_1, "Fault1");
-    //motor_print_reg(DRV_REG_FAULT_STATUS_2, "Fault2");
-    //motor_print_reg(DRV_REG_GATE_DRIVER_HS, "DriverHS");
-    //motor_print_reg(DRV_REG_GATE_DRIVER_LS, "DriverLS");
-
-    // Schedule FOC loop
+static void schedule_foc_timer() {
     if (motor_get_identity() == MOTOR_IDENT_CAPSTAN) {
         timer_schedule(TIMER_ID_FOC_LOOP, CAPSTAN_SAMPLE_RATE, PRIO_FOC_LOOP, foc_loop_capstan);
-        uart_println("Scheduled capstan loop");
     } else {
         timer_schedule(TIMER_ID_FOC_LOOP, FREQ_FOC_LOOP, PRIO_FOC_LOOP, foc_loop);
-        uart_println("Scheduled FOC loop");
     }
-    //uart_println("Motor module enabled");
-} 
-
-static void deinitialize_motor_module() {
-    //motor_disable();
-    // CRITICAL: Disable interrupts to prevent race condition
-    // Must stop timer BEFORE setting high-Z to prevent FOC loop
-    // from re-enabling PWM after we've disabled it
-    uint32_t primask = __get_PRIMASK();
-    __disable_irq();
-    gpio_set_pin(PIN_DEBUG2);
-    timer_deschedule(0);      // Stop FOC loop FIRST
-    motor_set_high_z();       // Then safe to set high-Z
-    gpio_clear_pin(PIN_DEBUG2);
-    __set_PRIMASK(primask);
-    //uart_println("Motor module disabled");
 }
 
 static void foc_loop() {
@@ -122,7 +90,28 @@ static void foc_loop_capstan() {
 //#define INSTA_ENABLE
 
 void foc_loop_init() {
-    initialize_motor_module();
+    // One-shot HW config. The FOC timer is NOT started here — callers must
+    // invoke foc_loop_start() (typically via main()'s enable reconcile).
+    gate_driver_set_idrive(0b111, 0b111, 0b111, 0b111);
+}
+
+void foc_loop_start(void) {
+    if (foc_loop_running) return;
+    schedule_foc_timer();
+    foc_loop_running = true;
+}
+
+void foc_loop_stop(void) {
+    if (!foc_loop_running) return;
+    // Must stop timer BEFORE high-Z so a pending FOC tick can't re-arm PWM.
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    gpio_set_pin(PIN_DEBUG2);
+    timer_deschedule(TIMER_ID_FOC_LOOP);
+    motor_set_high_z();
+    gpio_clear_pin(PIN_DEBUG2);
+    __set_PRIMASK(primask);
+    foc_loop_running = false;
 }
 
 float foc_loop_get_speed() {

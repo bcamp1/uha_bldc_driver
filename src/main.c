@@ -229,9 +229,9 @@ int main() {
     motor_calibrate_encoder();
     motor_disable();
 
-    // FOC Loop
+    // FOC Loop (HW config only; timer is started on first CMD_ENABLE)
     foc_loop_init();
-    uart_println("FOC Loop enabled.");
+    uart_println("FOC ready (idle until CMD_ENABLE).");
 
     // Command Center
     command_center_register_cb(command_center_cb);
@@ -243,9 +243,11 @@ int main() {
         if (target != actual_enabled) {
             if (target) {
                 uart_println("CMD_ENABLE!");
-                motor_enable();
+                motor_enable();      // ~1-2 ms; FOC is idle so no transient PWM
+                foc_loop_start();    // schedule 1004 Hz FOC timer
             } else {
                 uart_println("CMD_DISABLE!");
+                foc_loop_stop();     // atomic: deschedule timer + high-Z
                 motor_disable();
             }
             actual_enabled = target;
