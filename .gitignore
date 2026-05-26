@@ -15,4 +15,5 @@ CMakeCache.txt
 CMakeFiles/
 lib/include/
 cmake_install.cmake
+working/
 

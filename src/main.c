@@ -38,6 +38,11 @@ static void set_motor_identity();
 static uint8_t self_address = 0;
 static MotorIdentity motor_identity = MOTOR_IDENT_UNKNOWN;
 
+// Reconciled in main()'s while(true) so motor_enable/disable (which do
+// gate-driver SPI and ~1 ms of delay()) never run from the RS485 RX ISR.
+static volatile bool desired_enabled = false;
+static bool          actual_enabled  = false;
+
 static void init_peripherals(void) {
 	// Init clock to use 32K OSC in closed-loop 48MHz mode
     // Then its boosted to 120MHz
@@ -131,16 +136,6 @@ static void encoder_spi_callback() {
     spi_async_start_read(NULL);
 }
 
-// INT16_MAX -> +1.0f, INT16_MIN -> -1.0f. Inverse of torque_float_to_int16.
-static float torque_int16_to_float(int16_t raw) {
-    if (raw >= 0) return (float)raw / 32767.0f;
-    return (float)raw / 32768.0f;
-}
-
-static int16_t bytes_to_int16(uint8_t msb, uint8_t lsb) {
-    return (int16_t)(((uint16_t)msb << 8) | lsb);
-}
-
 static void encoder_test() {
     uart_println("Starting motor encoder test");
     delay(0xFFF);
@@ -187,48 +182,22 @@ void current_printer() {
     __set_PRIMASK(primask);
 }
 
+// Runs in RS485 RX ISR context (priority 3). Must stay fast and side-effect
+// free aside from setting volatile flags / single-word writes — heavy work
+// (motor_enable/disable, etc.) is reconciled from main().
 static void command_center_cb(CommandCenterCmd cmd) {
     switch (cmd) {
         case CMD_ENABLE:
-            uart_println("CMD_ENABLE");
-            motor_enable();
+            desired_enabled = true;
             foc_loop_set_torque(0.4f);
             break;
         case CMD_DISABLE:
-            uart_println("CMD_DISABLE");
-            motor_disable();
+            desired_enabled = false;
             break;
         case CMD_CALIB_ENCODER:
-            uart_println("CMD_CALIB_ENCODER");
-            break;
         case CMD_CAPSTAN_SETTING:
-            uart_print("CMD_CAPSTAN_SETTING: ");
-            CapstanSetting setting = command_center_get_capstan_setting();
-            switch (setting) {
-                case CAPSTAN_CMD_15IPS:
-                    uart_println("CAPSTAN_CMD_15IPS");
-                    break;
-                case CAPSTAN_CMD_30IPS:
-                    uart_println("CAPSTAN_CMD_30IPS");
-                    break;
-                case CAPSTAN_CMD_7P5IPS:
-                    uart_println("CAPSTAN_CMD_7P5IPS");
-                    break;
-                case CAPSTAN_CMD_OFF:
-                    uart_println("CAPSTAN_CMD_OFF");
-                    break;
-                case CAPSTAN_CMD_OTHER:
-                    uart_println("CAPSTAN_CMD_OTHER");
-                    break;
-            }
+        case CMD_TORQUE_UPDATE:
             break;
-        case CMD_TORQUE_UPDATE: {
-            //float torque = command_center_get_torque();
-            //uart_print("CMD_TORQUE_UPDATE: ");
-            //uart_println_float(torque);
-            //foc_loop_set_torque(torque);
-            break;
-        }
     }
 }
 
@@ -270,24 +239,17 @@ int main() {
     command_center_init(motor_identity);
 
     while (true) {
-        /*
-        MotorCommsRxResult rx = motor_comms_get_data();
-
-        if (rx.err == RX_ERR_OK) {
-            if (rx.data_len != 5) {
-                uart_println("Wrong data size");
-            } else if (rx.data[0] != 0x7) {
-                uart_println("Wrong command");
+        bool target = desired_enabled;  // volatile read
+        if (target != actual_enabled) {
+            if (target) {
+                uart_println("CMD_ENABLE!");
+                motor_enable();
             } else {
-                float data1 = torque_int16_to_float(bytes_to_int16(rx.data[1], rx.data[2]));
-                float data2 = torque_int16_to_float(bytes_to_int16(rx.data[3], rx.data[4]));
-
-                uart_print_float(data1);
-                uart_print(" ");
-                uart_println_float(data2);
+                uart_println("CMD_DISABLE!");
+                motor_disable();
             }
+            actual_enabled = target;
         }
-        */
     }
 }
 
