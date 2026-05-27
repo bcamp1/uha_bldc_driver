@@ -182,14 +182,15 @@ static void command_center_cb(CommandCenterCmd cmd) {
     switch (cmd) {
         case CMD_ENABLE:
             desired_enabled = true;
-            foc_loop_set_torque(0.4f);
             break;
         case CMD_DISABLE:
             desired_enabled = false;
             break;
+        case CMD_TORQUE_UPDATE:
+            foc_loop_set_torque(command_center_get_torque());
+            break;
         case CMD_CALIB_ENCODER:
         case CMD_CAPSTAN_SETTING:
-        case CMD_TORQUE_UPDATE:
             break;
     }
 }
