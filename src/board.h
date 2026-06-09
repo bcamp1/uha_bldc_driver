@@ -17,6 +17,7 @@
 #define PIN_GATE_SOB PIN_PB02 // ADC0 AIN[14]
 #define PIN_GATE_SOC PIN_PB03 // ADC0 AIN[15]
 #define PIN_GATE_NFAULT PIN_PA20
+#define PIN_GATE_NFAULT_EIC_INDEX 4 // PA20 -> EXTINT[4]
 #define PIN_GATE_ENABLE PIN_PB17
 #define PIN_GATE_CAL PIN_PB16
 #define PIN_GATE_INHA PIN_PA23
@@ -76,6 +77,7 @@
 
 // Priorities
 #define PRIO_COMMAND_CENTER (0)
+#define PRIO_FAULT (1)        // nFAULT ISR is tiny (high-Z + flag); preempts FOC
 #define PRIO_SPI_ENCODER (1)
 #define PRIO_FOC_LOOP (2)
 #define PRIO_EIC_ENABLE (3)

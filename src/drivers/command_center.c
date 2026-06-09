@@ -15,7 +15,9 @@ MotorIdentity identity = MOTOR_IDENT_UNKNOWN;
 
 static float commanded_torque = 0.0f;
 static CapstanSetting capstan_setting = CAPSTAN_CMD_OFF;
-static uint8_t fault_status = 0;
+static uint8_t meta_fault = 0;   // firmware/system-level faults (META_FAULT_* bits)
+static uint16_t fault_reg1 = 0;  // DRV FAULT_STATUS_1
+static uint16_t fault_reg2 = 0;  // DRV FAULT_STATUS_2
 
 static CommandCenterCb command_cb = 0;
 
@@ -42,7 +44,7 @@ static void command_center_tick() {
     }
 
     uint8_t command = rx.data[0];
-    uint8_t response[4];
+    uint8_t response[6];
 
     switch (command) {
         case MOTOR_COMMS_CMD_DISABLE:
@@ -60,8 +62,12 @@ static void command_center_tick() {
         case MOTOR_COMMS_CMD_FAULT_STATUS:
             if (!rx.broadcast) {
                 response[0] = MOTOR_COMMS_CMD_FAULT_STATUS;
-                response[1] = fault_status;
-                motor_comms_send_data(response, 2);
+                response[1] = meta_fault;
+                response[2] = (uint8_t)(fault_reg1 >> 8);
+                response[3] = (uint8_t)(fault_reg1 & 0xFF);
+                response[4] = (uint8_t)(fault_reg2 >> 8);
+                response[5] = (uint8_t)(fault_reg2 & 0xFF);
+                motor_comms_send_data(response, 6);
             }
             break;
         case MOTOR_COMMS_CMD_CALIB_ENCODER:
@@ -142,7 +148,20 @@ CapstanSetting command_center_get_capstan_setting() {
     return capstan_setting;
 }
 
-void command_center_set_fault_status(uint8_t fs) {
-    fault_status = fs;
+void command_center_set_fault_registers(uint16_t fs1, uint16_t fs2) {
+    fault_reg1 = fs1;
+    fault_reg2 = fs2;
+}
+
+void command_center_set_meta_fault(uint8_t mask) {
+    meta_fault |= mask;
+}
+
+void command_center_clear_meta_fault(uint8_t mask) {
+    meta_fault &= ~mask;
+}
+
+uint8_t command_center_get_meta_fault(void) {
+    return meta_fault;
 }
 

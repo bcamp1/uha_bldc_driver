@@ -15,6 +15,10 @@
 #include "../board.h"
 #include <stdbool.h>
 
+// TEST-ONLY: enables the sensitive VDS_OCP threshold in gate_driver_enable() so
+// the fault path can be exercised at low Vbus. Uncomment for fault testing.
+//#define FAULT_DEBUG_OCP
+
 /*
 const UHAMotorDriverConfig UHA_MTR_DRVR_CONF = {
 	.pwm = &PWM_CONF,
@@ -51,17 +55,23 @@ void gate_driver_init() {
     gate_driver_disable();
 }
 
-void gate_driver_set_3x() {
+// Max write+readback attempts before declaring the gate-driver SPI dead.
+#define GATE_SPI_MAX_RETRIES 10
+
+bool gate_driver_set_3x() {
     // Set to 3x PWM mode
     uint16_t pwm_mode = 0b01; // 3x PWM Mode
     uint16_t control_reg_data = (pwm_mode << 5) | 0b1; // Add in clr_flt
-    uint16_t register_contents = 0;
     //uart_println("Setting 3x");
-    while ((register_contents & 0b100000) == 0) {
+    for (int attempt = 0; attempt < GATE_SPI_MAX_RETRIES; attempt++) {
         gate_driver_write_reg(DRV_REG_DRIVER_CONTROL, control_reg_data);
-        register_contents = gate_driver_read_reg(DRV_REG_DRIVER_CONTROL);
+        uint16_t register_contents = gate_driver_read_reg(DRV_REG_DRIVER_CONTROL);
         //uart_println_int_base(register_contents, 2);
+        if (register_contents & 0b100000) {
+            return true;
+        }
     }
+    return false;  // SPI write never read back -> gate-driver SPI not working
 }
 
 void gate_driver_set_idrive(uint16_t hs_p, uint16_t hs_n, uint16_t ls_p, uint16_t ls_n) {
@@ -137,15 +147,26 @@ void gate_driver_goto_theta(float theta) {
 	gate_driver_set_pwm(a_int, b_int, c_int);
 }
 
-void gate_driver_enable() {
+bool gate_driver_enable() {
 	gpio_set_pin(PIN_GATE_ENABLE);
 	delay(0xFFF);
-	gate_driver_set_3x();
+	bool spi_ok = gate_driver_set_3x();
 	delay(0xFFF);
 
     // Change CSA amplitude
     gate_driver_write_reg(DRV_REG_CSA_CONTROL, 0b01011000011);
 	delay(0xFFF);
+
+#ifdef FAULT_DEBUG_OCP
+    // TEST-ONLY: make VDS_OCP trip at the lowest threshold so the fault path
+    // can be exercised at low Vbus without real overcurrent. Build with
+    // -DFAULT_DEBUG_OCP; remove to return to the DRV default OCP behavior.
+    // OCP_CONTROL = TRETRY=0 | DEAD_TIME=100ns | OCP_MODE=latch | OCP_DEG=2us | VDS_LVL=0.06V
+    gate_driver_write_reg(DRV_REG_OCP_CONTROL, 0x110);
+    delay(0xFFF);
+#endif
+
+	return spi_ok;
 }
 
 void gate_driver_disable() {

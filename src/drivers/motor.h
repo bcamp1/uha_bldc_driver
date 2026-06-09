@@ -42,7 +42,7 @@ void motor_set_torque(float torque, float pole_position);
 void motor_set_align(float torque, float pole_position);
 void motor_write_reg(uint8_t address, uint16_t data);
 uint16_t motor_read_reg(uint8_t address);
-void motor_enable();
+bool motor_enable();   // returns false if the gate-driver SPI did not confirm config
 void motor_disable();
 void motor_set_high_z();
 void motor_calibrate_encoder();

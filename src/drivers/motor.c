@@ -190,15 +190,16 @@ void motor_print_reg(uint8_t address, char* name) {
     uart_println_int_base(data, 2);
 }
 
-void motor_enable() {
+bool motor_enable() {
     // SERCOM3 is shared with the encoder SPI. Mask the 1700 Hz encoder timer
     // (TC1 == TIMER_ID_SPI_ENCODER) and drain any in-flight encoder read
     // before driving the gate driver bus, otherwise the encoder ISR can
     // preempt mid-transaction and leave spi_busy=true forever.
     NVIC_DisableIRQ(TC1_IRQn);
     while (spi_async_is_busy()) { }
-    gate_driver_enable();
+    bool spi_ok = gate_driver_enable();
     NVIC_EnableIRQ(TC1_IRQn);
+    return spi_ok;
 }
 
 void motor_disable() {

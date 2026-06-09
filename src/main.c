@@ -23,6 +23,7 @@
 #include "periphs/eic.h"
 #include "drivers/motor_comms_slave.h"
 #include "drivers/command_center.h"
+#include "drivers/faults.h"
 
 #define FIRMWARE_VERSION "UHA BLDC FIRMWARE v0.1"
 #define FIRMWARE_AUTHOR "AUTHOR: BRANSON CAMP"
@@ -181,6 +182,7 @@ void current_printer() {
 static void command_center_cb(CommandCenterCmd cmd) {
     switch (cmd) {
         case CMD_ENABLE:
+            faults_clear();   // re-arm; the gate-driver enable clears the DRV fault
             desired_enabled = true;
             break;
         case CMD_DISABLE:
@@ -228,22 +230,46 @@ int main() {
 
     // Command Center
     command_center_register_cb(command_center_cb);
-    command_center_set_fault_status(0);
     command_center_init(motor_identity);
 
+    // nFAULT monitoring (DRV8323). Init after motor_init so the EIC pin mux
+    // wins over the plain-input setup in gate_driver_init.
+    faults_init();
+
     while (true) {
-        bool target = desired_enabled;  // volatile read
+        // On an nFAULT trip, read+deposit the DRV fault registers, then keep
+        // the motor latched off until a fresh CMD_ENABLE clears the latch.
+        faults_poll();
+        // Update firmware/system-level meta-faults (encoder SPI health, etc.).
+        faults_check_health();
+        // Any latched fault (DRV nFAULT or a meta-fault) keeps the motor off.
+        bool target = desired_enabled && !faults_is_latched();
         if (target != actual_enabled) {
             if (target) {
                 uart_println("CMD_ENABLE!");
-                motor_enable();      // ~1-2 ms; FOC is idle so no transient PWM
-                foc_loop_start();    // schedule 1004 Hz FOC timer
+                // Mask nFAULT across enable: the DRV pulses nFAULT low while its
+                // charge pump powers up, which would otherwise latch as a fault.
+                faults_suspend();
+                bool spi_ok = motor_enable();  // ~1-2 ms; FOC idle, no transient PWM
+                faults_resume();
+                // Route the gate-driver SPI result through faults.c (single owner
+                // of the meta-fault register). Latches on failure.
+                faults_report_gate_spi(spi_ok);
+                if (faults_is_latched()) {
+                    // A fault surfaced during enable (e.g. gate-driver SPI) — back
+                    // the motor out instead of starting FOC.
+                    motor_disable();
+                    actual_enabled = false;
+                } else {
+                    foc_loop_start();    // schedule 1004 Hz FOC timer
+                    actual_enabled = true;
+                }
             } else {
                 uart_println("CMD_DISABLE!");
                 foc_loop_stop();     // atomic: deschedule timer + high-Z
                 motor_disable();
+                actual_enabled = false;
             }
-            actual_enabled = target;
         }
     }
 }

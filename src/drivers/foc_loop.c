@@ -109,10 +109,12 @@ void foc_loop_stop(void) {
     // Must stop timer BEFORE high-Z so a pending FOC tick can't re-arm PWM.
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
-    gpio_set_pin(PIN_DEBUG2);
+    // DEBUG2 is now used to trace the 1700 Hz encoder read (spi_async.c);
+    // disabled here so it doesn't inject a spurious pulse into that signal.
+    //gpio_set_pin(PIN_DEBUG2);
     timer_deschedule(TIMER_ID_FOC_LOOP);
     motor_set_high_z();
-    gpio_clear_pin(PIN_DEBUG2);
+    //gpio_clear_pin(PIN_DEBUG2);
     __set_PRIMASK(primask);
     foc_loop_running = false;
 }

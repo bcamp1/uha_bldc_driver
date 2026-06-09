@@ -20,5 +20,9 @@ uint16_t spi_async_get_safe_result();
 // Check if a transfer is in progress
 bool spi_async_is_busy();
 
+// Consecutive parity-failed reads (0 = last read valid). Sustained nonzero
+// indicates the encoder SPI is not delivering good data.
+uint32_t spi_async_get_fail_count(void);
+
 #endif
 

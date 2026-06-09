@@ -84,6 +84,10 @@ void eic_init_pin(uint16_t pin, uint16_t ext_num, uint16_t int_mode, func_ptr_t 
 	while (EIC->SYNCBUSY.bit.ENABLE);
 }
 
+void EIC_4_Handler(void) {
+	process_interrupt(4);          // PA20 nFAULT (DRV8323)
+}
+
 void EIC_15_Handler(void) {
 	//gpio_set_pin(PIN_DEBUG2);      // DEBUG: Trace EIC_15 (ENABLE) firing
 	process_interrupt(15);

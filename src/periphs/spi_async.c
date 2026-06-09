@@ -15,6 +15,7 @@ static volatile uint16_t result = 0;
 static volatile uint16_t safe_result = 0;  // Last completed result
 static volatile uint8_t tx_count = 0;      // Bytes sent
 static volatile uint8_t rx_count = 0;      // Bytes received
+static volatile uint32_t encoder_fail_count = 0; // consecutive parity-failed reads
 
 static bool verify_spi_data(uint16_t data) {
 /*
@@ -115,6 +116,10 @@ void spi_async_init() {
 void spi_async_start_read(spi_callback_t callback) {
     if (spi_busy) return;
 
+    // DEBUG2 high for the duration of the encoder read (set here in the
+    // 1700 Hz timer ISR context; cleared on completion in SERCOM3_2_Handler).
+    gpio_set_pin(PIN_DEBUG2);
+
 	// Bring nCS low
 	gpio_clear_pin(SPI_CONF_MTR_ENCODER.cs);
 
@@ -142,6 +147,13 @@ uint16_t spi_async_get_safe_result() {
 
 bool spi_async_is_busy() {
     return spi_busy;
+}
+
+// Consecutive parity-failed encoder reads; 0 means the last completed read was
+// valid. A sustained nonzero value indicates the encoder SPI is not delivering
+// good data.
+uint32_t spi_async_get_fail_count(void) {
+    return encoder_fail_count;
 }
 
 // DRE interrupt - ready to send next byte
@@ -192,7 +204,9 @@ void SERCOM3_2_Handler(void) {
             // Update safe result (atomic complete value)
             if (verify_spi_data(result)) {
                 safe_result = result;
+                encoder_fail_count = 0;        // a good read clears the streak
             } else {
+                if (encoder_fail_count != 0xFFFFFFFFu) encoder_fail_count++;
                 //uart_put('!');
             }
 
@@ -204,6 +218,9 @@ void SERCOM3_2_Handler(void) {
             SPI_SERCOM->SPI.INTENCLR.bit.RXC = 1;
 
             spi_busy = false;
+
+            // Encoder read complete: DEBUG2 low (paired with set in start_read).
+            gpio_clear_pin(PIN_DEBUG2);
 
             // Call user callback if registered
             if (user_callback) user_callback();
