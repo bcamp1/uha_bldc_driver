@@ -227,6 +227,8 @@ int main() {
     // FOC Loop (HW config only; timer is started on first CMD_ENABLE)
     foc_loop_init();
     uart_println("FOC ready (idle until CMD_ENABLE).");
+    uart_print("SELF ADDRESS: ");
+    uart_println_int(self_address);
 
     // Command Center
     command_center_register_cb(command_center_cb);

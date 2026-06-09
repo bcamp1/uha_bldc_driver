@@ -118,6 +118,12 @@ static void command_center_tick() {
                     motor_comms_send_byte(MOTOR_COMMS_CMD_BAD_REQUEST);
                     return;
                 }
+
+                // Reply with meta fault status
+                response[0] = command;
+                response[1] = meta_fault;
+                motor_comms_send_data(response, 2);
+
                 msb = rx.data[1];
                 lsb = rx.data[2];
             } 
