@@ -26,4 +26,9 @@ void rs485_rx_flush(void);  // Discard all buffered RX
 // or the wait will deadlock.
 void rs485_send_bytes(const uint8_t* data, uint16_t len);
 
+// Safety net: if TXEN gets stranded high (a lost TXC completion), force the
+// transceiver back to receive once the ring has been idle too long. Call
+// periodically from the main loop (lowest priority). Cheap no-op when idle.
+void rs485_txen_watchdog(void);
+
 #endif /* RS485_H_ */

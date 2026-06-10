@@ -239,6 +239,10 @@ int main() {
     faults_init();
 
     while (true) {
+        // Safety net: recover the RS485 bus if a lost TXC completion ever
+        // strands TXEN high (would otherwise contend the bus / spin the motor
+        // until power cycle).
+        rs485_txen_watchdog();
         // On an nFAULT trip, read+deposit the DRV fault registers, then keep
         // the motor latched off until a fresh CMD_ENABLE clears the latch.
         faults_poll();

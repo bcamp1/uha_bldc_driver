@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../periphs/delay.h"
+#include "../periphs/stopwatch.h"
 
 #define RS485_TX_PIN	PIN_PA04
 #define RS485_RX_PIN	PIN_PA05
@@ -29,6 +30,12 @@
 #define RS485_TX_BUF_SIZE 16  // Must be a power of two
 #define RS485_TX_BUF_MASK (RS485_TX_BUF_SIZE - 1)
 
+// TXEN watchdog timeout, in stopwatch ticks (TC4 @ 120 MHz, 8.33 ns/tick).
+// A full 16-byte ring at 500 kbaud is ~320 us on the wire; 5 ms is ~15x that,
+// well clear of any legitimately long (even heavily preempted) frame, so it
+// only ever trips on a genuinely stranded TXEN.
+#define RS485_TXEN_WATCHDOG_TICKS (600000u)  // ~5 ms
+
 static volatile uint8_t rx_buf[RS485_RX_BUF_SIZE];
 static volatile uint16_t rx_head = 0;  // Written by ISR
 static volatile uint16_t rx_tail = 0;  // Read by consumer
@@ -37,6 +44,7 @@ static volatile uint8_t tx_buf[RS485_TX_BUF_SIZE];
 static volatile uint16_t tx_head = 0;  // Written by producer
 static volatile uint16_t tx_tail = 0;  // Read by DRE ISR
 static volatile bool tx_active = false;  // True while TXEN is asserted
+static volatile uint32_t txen_assert_ticks = 0;  // Stopwatch time TXEN was driven high
 
 static void (*rx_ready_cb)(void) = 0;
 
@@ -109,6 +117,7 @@ void rs485_send_bytes(const uint8_t* data, uint16_t len) {
 			// Cold start: drive TXEN, settle (55ns spec), arm DRE so the ISR
 			// pumps the ring.
 			gpio_set_pin(RS485_TXEN_PIN);
+			txen_assert_ticks = stopwatch_underlying_time();  // arm the watchdog
 			delay(1);
 			RS485_SERCOM->USART.INTENSET.reg = SERCOM_USART_INTENSET_DRE;
 		} else {
@@ -123,6 +132,40 @@ void rs485_send_bytes(const uint8_t* data, uint16_t len) {
 			__enable_irq();
 		}
 	}
+}
+
+// Safety net for a stranded TXEN. The bus is released only by the TXC ISR
+// (SERCOM0_1_Handler), so any single lost TXC completion leaves TXEN asserted
+// forever — contending the bus and (when enabled) spinning the motor until a
+// power cycle. If TXEN has been held far longer than any legitimate frame AND
+// the ring is drained, force the transceiver back to receive.
+//
+// Call periodically from the main loop (lowest priority). Cheap when idle.
+// Assumes this node only ever transmits short, bounded reply frames, so
+// tx_active is never legitimately held for RS485_TXEN_WATCHDOG_TICKS.
+void rs485_txen_watchdog(void) {
+	if (!tx_active) {
+		return;  // Bus already idle — nothing to guard.
+	}
+
+	// uint32 subtraction wraps cleanly across the timer's 32-bit rollover.
+	uint32_t elapsed = stopwatch_underlying_time() - txen_assert_ticks;
+	if (elapsed < RS485_TXEN_WATCHDOG_TICKS) {
+		return;
+	}
+
+	// Only intervene once the producer has drained the ring; an in-progress
+	// transfer (head != tail) is legitimate and will complete on its own. While
+	// TXEN is genuinely stranded no new cold-start can occur (it needs
+	// tx_active == false), so txen_assert_ticks stays put and this stays armed.
+	__disable_irq();
+	if (tx_active && tx_head == tx_tail) {
+		RS485_SERCOM->USART.INTENCLR.reg =
+			SERCOM_USART_INTENCLR_DRE | SERCOM_USART_INTENCLR_TXC;
+		gpio_clear_pin(RS485_TXEN_PIN);
+		tx_active = false;
+	}
+	__enable_irq();
 }
 
 int rs485_available(void) {
@@ -174,7 +217,13 @@ void SERCOM0_0_Handler(void) {
 	if (RS485_SERCOM->USART.INTFLAG.bit.DRE) {
 		if (tx_head == tx_tail) {
 			RS485_SERCOM->USART.INTENCLR.reg = SERCOM_USART_INTENCLR_DRE;
-			RS485_SERCOM->USART.INTFLAG.reg = SERCOM_USART_INTFLAG_TXC;  // W1C any stale flag
+			// Do NOT clear TXC here. If a higher/equal-priority ISR (FOC loop,
+			// encoder, nFAULT) delayed this handoff past one character time, the
+			// last byte has already finished shifting and TXC is legitimately
+			// set — we want the TXC ISR to fire immediately and release TXEN.
+			// W1C'ing it would strand TXEN high forever (bus contention + motor
+			// spins until power cycle). TXC can't be stale: it auto-clears on
+			// every DATA write and is W1C'd at end-of-frame below.
 			RS485_SERCOM->USART.INTENSET.reg = SERCOM_USART_INTENSET_TXC;
 		} else {
 			uint8_t byte = tx_buf[tx_tail];
