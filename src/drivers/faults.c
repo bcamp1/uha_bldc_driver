@@ -8,6 +8,7 @@
 #include "gate_driver.h"
 #include "foc_loop.h"
 #include "command_center.h"
+#include "motor.h"
 #include "../periphs/eic.h"
 #include "../periphs/spi_async.h"
 #include "../periphs/uart.h"
@@ -145,6 +146,12 @@ void faults_report_gate_spi(bool ok) {
 }
 
 void faults_check_health(void) {
+    // The capstan runs open-loop and has no actively-used encoder, so a dead
+    // encoder SPI is expected there and must not be treated as a fault.
+    if (motor_get_identity() == MOTOR_IDENT_CAPSTAN) {
+        return;
+    }
+
     static bool prev_fail = false;
     bool fail = spi_async_get_fail_count() >= ENCODER_FAIL_THRESHOLD;
 

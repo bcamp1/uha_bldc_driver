@@ -79,14 +79,18 @@ void motor_init(MotorIdentity i) {
     // Init gate driver
     gate_driver_init();
 
-    // Init encoder SPI
-    spi_async_init();
+    // The capstan runs open-loop with no actively-used encoder, so skip all
+    // encoder SPI setup (init + sample timer) for it.
+    if (identity != MOTOR_IDENT_CAPSTAN) {
+        // Init encoder SPI
+        spi_async_init();
 
-    // Take ownership of the encoder sample timer. It runs continuously from
-    // boot; motor_enable/disable mask it briefly to keep SERCOM3 exclusive
-    // while talking to the gate driver.
-    timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER,
-                   PRIO_SPI_ENCODER, encoder_spi_callback);
+        // Take ownership of the encoder sample timer. It runs continuously from
+        // boot; motor_enable/disable mask it briefly to keep SERCOM3 exclusive
+        // while talking to the gate driver.
+        timer_schedule(TIMER_ID_SPI_ENCODER, FREQ_SPI_ENCODER,
+                       PRIO_SPI_ENCODER, encoder_spi_callback);
+    }
 }
 
 float motor_get_position() {

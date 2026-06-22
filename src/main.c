@@ -219,10 +219,13 @@ int main() {
     set_motor_identity();
     motor_init(motor_identity);
 
-    // Calibrate Encoder (encoder timer is already running, started by motor_init)
-    motor_enable();
-    motor_calibrate_encoder();
-    motor_disable();
+    // Calibrate Encoder (encoder timer is already running, started by motor_init).
+    // The capstan runs open-loop with no actively-used encoder, so skip it.
+    if (motor_identity != MOTOR_IDENT_CAPSTAN) {
+        motor_enable();
+        motor_calibrate_encoder();
+        motor_disable();
+    }
 
     // FOC Loop (HW config only; timer is started on first CMD_ENABLE)
     foc_loop_init();
