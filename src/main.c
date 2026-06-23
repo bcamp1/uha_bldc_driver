@@ -50,6 +50,8 @@ static MotorIdentity motor_identity = MOTOR_IDENT_UNKNOWN;
 static volatile bool desired_enabled = false;
 static bool          actual_enabled  = false;
 
+static bool should_calibrate = false;
+
 static void init_peripherals(void) {
 	// Init clock to use 32K OSC in closed-loop 48MHz mode
     // Then its boosted to 120MHz
@@ -199,6 +201,8 @@ static void command_center_cb(CommandCenterCmd cmd) {
             foc_loop_set_torque(command_center_get_torque());
             break;
         case CMD_CALIB_ENCODER:
+            should_calibrate = true;
+            break;
         case CMD_CAPSTAN_SETTING:
             break;
     }
@@ -316,6 +320,19 @@ int main() {
                 motor_disable();
                 actual_enabled = false;
             }
+        }
+
+        if (should_calibrate) {
+            // Mask nFAULT across enable, same as the CMD_ENABLE path: the DRV
+            // pulses nFAULT low while its charge pump powers up, which would
+            // otherwise latch as a (spurious) fault. Startup calibration never
+            // hit this because it runs before faults_init() arms the EIC.
+            faults_suspend();
+            motor_enable();
+            faults_resume();
+            motor_calibrate_encoder();
+            motor_disable();
+            should_calibrate = false;
         }
     }
 }
