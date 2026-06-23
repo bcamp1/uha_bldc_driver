@@ -24,10 +24,17 @@
 #include "drivers/motor_comms_slave.h"
 #include "drivers/command_center.h"
 #include "drivers/faults.h"
+#include "drivers/seeprom.h"
 
 #define FIRMWARE_VERSION "UHA BLDC FIRMWARE v0.1"
 #define FIRMWARE_AUTHOR "AUTHOR: BRANSON CAMP"
 #define FIRMWARE_DATE "DATE: OCTOBER 2025"
+
+// Encoder calibration mode.
+//   1 = always run a fresh calibration sweep on boot (and persist the result).
+//   0 = restore the stored offset from SmartEEPROM; only run the sweep if no
+//       calibration has been saved yet.
+#define FORCE_CALIBRATION 0
 
 static void enable_fpu(void);
 static void init_peripherals(void);
@@ -209,6 +216,24 @@ int main() {
     uart_println(FIRMWARE_DATE);
     uart_println("--------------------");
 
+    // Persistent storage (SmartEEPROM). On a fresh board this provisions the
+    // user-page fuses and resets -- the debug LED blinks during that one-time
+    // step, and halts on a fast blink if storage can't be brought up. Run early,
+    // before anything that reads persistent state.
+    if (seeprom_init_or_provision()) {
+        uart_println("SmartEEPROM ready.");
+
+        // Persistence test: byte 0 is a boot counter. A freshly provisioned cell
+        // reads 0xFF (erased), so treat that as "never booted" -> start at 1. The
+        // byte wraps after 255 boots, which is fine for testing.
+        uint8_t boots = seeprom_read_byte(0);
+        boots = (boots == 0xFF) ? 1 : (uint8_t)(boots + 1);
+        seeprom_write_byte(0, boots);
+        uart_print("Total boots: ");
+        uart_println_int(boots);
+    } else {
+        uart_println("!! SmartEEPROM unavailable !!");
+    }
 
     uart_println("RS485 TEST MODE");
     uart_print("SELF ADDRESS: ");
@@ -222,9 +247,21 @@ int main() {
     // Calibrate Encoder (encoder timer is already running, started by motor_init).
     // The capstan runs open-loop with no actively-used encoder, so skip it.
     if (motor_identity != MOTOR_IDENT_CAPSTAN) {
-        motor_enable();
-        motor_calibrate_encoder();
-        motor_disable();
+#if FORCE_CALIBRATION
+        bool do_calibrate = true;
+#else
+        // Restore the saved offset; calibrate only if none has been stored yet.
+        bool do_calibrate = !motor_get_calibration();
+        if (!do_calibrate) {
+            uart_println("Encoder calibration restored from SmartEEPROM.");
+        }
+#endif
+        if (do_calibrate) {
+            // Calibration spins the rotor, so the gate driver must be enabled.
+            motor_enable();
+            motor_calibrate_encoder();
+            motor_disable();
+        }
     }
 
     // FOC Loop (HW config only; timer is started on first CMD_ENABLE)
@@ -281,85 +318,5 @@ int main() {
             }
         }
     }
-}
-
-int min(void) {
-    init_peripherals();
-    delay(0xFFF);
-
-    // Print firmware info
-    uart_println("\n");
-    uart_println("--------------------");
-    uart_println(FIRMWARE_VERSION);
-    uart_println(FIRMWARE_AUTHOR);
-    uart_println(FIRMWARE_DATE);
-    uart_println("--------------------");
-
-    //encoder_test();
-    //motor_init(&MOTOR_CONF_SUPPLY);
-    //
-
-    rs485_init(0);
-
-
-    uart_println("Waiting before enabling motor...");
-    delay(0xFFFFF);
-
-    do {
-        motor_init_from_ident();
-    } while (motor_get_identity() == MOTOR_IDENT_UNKNOWN);
-
-    if (motor_get_identity() != MOTOR_IDENT_CAPSTAN) {
-        delay(0x3FFFF);
-    }
-
-    motor_enable();
-    uart_println("Motor enabled.");
-
-    motor_calibrate_encoder();
-
-    //spi_slave_init();
-    foc_loop_init();
-    uart_println("FOC Loop enabled.");
-    
-    //motor_calibrate_encoder();
-    //motor_test_calibration();
-
-    foc_loop_set_torque(-0.3f);
-
-
-	while (1) {
-        /*
-        if (rs485_available()) {
-            uint8_t byte = rs485_get();
-            float byte_percent = byte / 256.0f;
-            uart_println_float(byte_percent);
-            foc_loop_set_torque((byte_percent * 0.6f));
-        }
-        */
-
-        foc_loop_set_torque(0.4f);
-        
-        /*
-        uint16_t fault = gate_driver_read_reg(DRV_REG_FAULT_STATUS_1);
-
-        if (fault != 0)
-            uart_println_int_base(fault, 2);
-        delay(0xFFFFF);
-        */
-
-        //gpio_toggle_pin(PIN_DEBUG1);
-        //gpio_toggle_pin(PIN_DEBUG2);
-        //delay(0xFFFF);
-        /*
-        uart_print_int(spi_slave_get_hit_count());
-        uart_print(" : ");
-        uart_print_int(spi_slave_get_miss_count());
-        uart_print(" (");
-        uart_print_float(spi_slave_get_success_rate() * 100.0f);
-        uart_println("%)");
-        delay(0x1FFFF);
-        */
-	}
 }
 

@@ -19,6 +19,7 @@
 #include "../periphs/spi_async.h"
 #include "../periphs/timer.h"
 #include "../board.h"
+#include "seeprom.h"
 
 MotorConfig MOTOR_CONF_SUPPLY = {
     .offset = 3.0237f,
@@ -43,6 +44,15 @@ MotorConfig MOTOR_CONF_CAPSTAN = {
 
 static MotorConfig* config = &MOTOR_CONF_SUPPLY;
 static MotorIdentity identity = MOTOR_IDENT_UNKNOWN;
+
+// SmartEEPROM layout: byte 0 is the boot counter (see main.c). Encoder
+// calibration offsets live past it, one float per motor identity, so the same
+// firmware running on takeup/supply/capstan boards never clobbers each other's
+// stored offset.
+#define SEE_SLOT_CAL_BASE 4u
+static uint16_t cal_slot(void) {
+    return (uint16_t)(SEE_SLOT_CAL_BASE + (uint16_t)identity * sizeof(float));
+}
 
 // Encoder is sampled by a 1700 Hz timer that kicks off an async SPI read on
 // SERCOM3. motor_enable/disable temporarily mask this IRQ to prevent
@@ -236,6 +246,22 @@ void motor_calibrate_encoder() {
     }
     config->offset = avg;
     motor_energize_coils(0.0f, 0.0f, 0.0f);
+
+    // Persist the freshly-measured offset so later boots can restore it via
+    // motor_get_calibration() instead of re-running this (motion-inducing) sweep.
+    seeprom_write_float(cal_slot(), config->offset);
+}
+
+bool motor_get_calibration() {
+    // Restore the encoder offset previously saved by motor_calibrate_encoder().
+    // An erased / never-written SmartEEPROM cell reads back as 0xFFFFFFFF, which
+    // as a float is NaN -- detect that and keep the compiled-in default instead.
+    float stored = seeprom_read_float(cal_slot());
+    if (stored != stored) {   // NaN => slot never written
+        return false;
+    }
+    config->offset = stored;
+    return true;
 }
 
 void motor_test_calibration() {

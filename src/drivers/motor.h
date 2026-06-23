@@ -46,6 +46,10 @@ bool motor_enable();   // returns false if the gate-driver SPI did not confirm c
 void motor_disable();
 void motor_set_high_z();
 void motor_calibrate_encoder();
+// Loads the stored encoder offset from SmartEEPROM into the active config.
+// Returns true if a valid offset was restored, false if none was saved yet
+// (the compiled-in default is left in place).
+bool motor_get_calibration();
 void motor_print_reg(uint8_t address, char* name);
 uint8_t motor_get_identity();
 
